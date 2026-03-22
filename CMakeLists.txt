@@ -9,7 +9,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 set(Qt6_DIR C:/Qt/6.10.2/msvc2022_64/lib/cmake/Qt6)
+set(OpenCASCADE_DIR "D:/3rd-party/opencascade-7.9.3-vc14-64/cmake")
+
 find_package(Qt6 REQUIRED COMPONENTS Widgets Svg SvgWidgets)
+find_package(OpenCASCADE REQUIRED CONFIG)
 
 add_subdirectory(vendor)
 
