@@ -4,7 +4,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include <hb-ft.h>
+#include <hb.h>
 #include <glm/glm.hpp>
 
 #include <cstdint>
@@ -22,11 +22,17 @@ namespace msdfgen {
 
 namespace Qadra::Core {
   struct GlyphInfo {
+    glm::vec2 planeBoundsMin{0.0f};
+    glm::vec2 planeBoundsMax{0.0f};
     glm::vec2 uvMin{0.0f};
     glm::vec2 uvMax{0.0f};
-    glm::vec2 size{0.0f};
-    glm::vec2 bearing{0.0f};
     bool cached{false};
+  };
+
+  struct GlyphDebugImage {
+    int widthPixels{};
+    int heightPixels{};
+    std::vector<float> pixels;
   };
 
   struct ShapedGlyph {
@@ -57,12 +63,34 @@ namespace Qadra::Core {
 
     [[nodiscard]] double descender() const noexcept { return m_descender; }
 
-    [[nodiscard]] double distanceFieldRange() const noexcept { return m_distanceFieldRange; }
+    [[nodiscard]] double distanceFieldRangePixels() const noexcept { return m_distanceFieldRangePixels; }
+
+    [[nodiscard]] GlyphDebugImage debugGlyphDistanceField(std::uint32_t glyphId);
 
   private:
+    struct AtlasSlot {
+      glm::ivec2 outerOriginPixels{0};
+      glm::ivec2 innerOriginPixels{0};
+    };
+
+    struct GeneratedGlyphDistanceField {
+      std::vector<float> pixels;
+      glm::vec2 planeBoundsMin{0.0f};
+      glm::vec2 planeBoundsMax{0.0f};
+    };
+
     void generateGlyph(std::uint32_t glyphId);
 
-    [[nodiscard]] std::pair<int, int> reserveAtlasSlot();
+    [[nodiscard]] GeneratedGlyphDistanceField buildGlyphDistanceField(std::uint32_t glyphId);
+
+    void clearAtlasSlot(const AtlasSlot &atlasSlot) const;
+
+    [[nodiscard]] GlyphInfo buildGlyphInfo(const AtlasSlot &atlasSlot,
+                                           const GeneratedGlyphDistanceField &generatedGlyph) const;
+
+    [[nodiscard]] AtlasSlot reserveAtlasSlot();
+
+    [[nodiscard]] int glyphSlotSizePixels() const noexcept;
 
     FT_Library m_freetypeLibrary{};
     FT_Face m_freetypeFace{};
@@ -74,11 +102,12 @@ namespace Qadra::Core {
     GL::Texture m_atlas;
     std::unordered_map<std::uint32_t, GlyphInfo> m_glyphs;
 
-    int m_penX{};
-    int m_penY{};
-    int m_rowHeight{};
-    int m_glyphBitmapSize{32};
-    double m_distanceFieldRange{4.0};
+    int m_nextAtlasWriteXPixels{};
+    int m_nextAtlasWriteYPixels{};
+    int m_currentAtlasRowHeightPixels{};
+    int m_glyphBitmapSizePixels{64};
+    int m_atlasGutterPixels{2};
+    double m_distanceFieldRangePixels{4.0};
 
     double m_lineHeight{};
     double m_ascender{};
