@@ -33,6 +33,8 @@ qt_add_executable(qadra main.cpp
         Shader.hpp
         Program.cpp
         Program.hpp
+        Texture.cpp
+        Texture.hpp
         core/Camera.cpp
         core/Camera.hpp
         core/Grid.cpp
