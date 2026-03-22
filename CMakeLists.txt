@@ -41,6 +41,12 @@ qt_add_executable(qadra main.cpp
         core/Font.hpp
         core/Grid.cpp
         core/Grid.hpp
+        core/OrientedBoxRenderer.cpp
+        core/OrientedBoxRenderer.hpp
+        core/TextLayout.cpp
+        core/TextLayout.hpp
+        core/TextRenderer.cpp
+        core/TextRenderer.hpp
         math/Grid.cpp
         math/Grid.hpp
         GridPass.cpp
