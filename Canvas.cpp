@@ -11,6 +11,18 @@
 #include "Program.hpp"
 #include "Shader.hpp"
 
+namespace {
+  int viewportPixels(const int logicalPixels, const qreal devicePixelRatio) {
+    return static_cast<int>(std::lround(static_cast<double>(logicalPixels) * devicePixelRatio));
+  }
+
+  glm::dvec2 viewportPixels(const QPointF &logicalPosition, const qreal devicePixelRatio) {
+    return {
+      logicalPosition.x() * devicePixelRatio,
+      logicalPosition.y() * devicePixelRatio
+    };
+  }
+}
 
 namespace Qadra::Ui {
   Canvas::Canvas() {
@@ -136,8 +148,18 @@ namespace Qadra::Ui {
   void Canvas::render() {
     m_context->makeCurrent(this);
 
-    const GLsizei viewportWidthPixels = std::floor(width() * devicePixelRatio());
-    const GLsizei viewportHeightPixels = std::floor(height() * devicePixelRatio());
+    const qreal devicePixelRatioValue = devicePixelRatio();
+    const GLsizei viewportWidthPixels = viewportPixels(width(), devicePixelRatioValue);
+    const GLsizei viewportHeightPixels = viewportPixels(height(), devicePixelRatioValue);
+
+    if (m_camera.width() != viewportWidthPixels || m_camera.height() != viewportHeightPixels) {
+      if (m_hasInitializedCameraViewport) {
+        m_camera.resizePreserveViewportOrigin(viewportWidthPixels, viewportHeightPixels);
+      } else {
+        m_camera.resize(viewportWidthPixels, viewportHeightPixels);
+        m_hasInitializedCameraViewport = true;
+      }
+    }
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -167,7 +189,8 @@ namespace Qadra::Ui {
   void Canvas::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::MiddleButton) {
       m_panning = true;
-      m_lastMousePosition = event->position();
+      const glm::dvec2 positionPixels = viewportPixels(event->position(), devicePixelRatio());
+      m_lastMousePosition = QPointF(positionPixels.x, positionPixels.y);
       setCursor(QCursor(Qt::ClosedHandCursor));
       event->accept();
     } else {
@@ -187,9 +210,11 @@ namespace Qadra::Ui {
 
   void Canvas::mouseMoveEvent(QMouseEvent *event) {
     if (m_panning) {
-      const QPointF delta = event->position() - m_lastMousePosition;
-      m_camera.pan(glm::vec2(-delta.x(), delta.y()));
-      m_lastMousePosition = event->position();
+      const glm::dvec2 positionPixels = viewportPixels(event->position(), devicePixelRatio());
+      const QPointF currentMousePosition(positionPixels.x, positionPixels.y);
+      const QPointF delta = currentMousePosition - m_lastMousePosition;
+      m_camera.pan(glm::dvec2(-delta.x(), delta.y()));
+      m_lastMousePosition = currentMousePosition;
       requestUpdate();
       event->accept();
     } else {
@@ -199,8 +224,8 @@ namespace Qadra::Ui {
 
   void Canvas::wheelEvent(QWheelEvent *event) {
     const float delta = event->angleDelta().y() / 120.0f;
-    const glm::vec2 mouseScreen(event->position().x(), event->position().y());
-    const glm::vec2 mouseWorld = m_camera.screenToWorld(mouseScreen);
+    const glm::dvec2 mouseScreenPixels = viewportPixels(event->position(), devicePixelRatio());
+    const glm::dvec2 mouseWorld = m_camera.screenToWorld(mouseScreenPixels);
     m_camera.zoom(std::pow(1.1f, delta), mouseWorld);
 
     requestUpdate();
@@ -208,7 +233,18 @@ namespace Qadra::Ui {
   }
 
   void Canvas::resizeEvent(QResizeEvent *event) {
-    m_camera.resize(width(), height());
+    const qreal devicePixelRatioValue = devicePixelRatio();
+    const int viewportWidthPixels = viewportPixels(event->size().width(), devicePixelRatioValue);
+    const int viewportHeightPixels = viewportPixels(event->size().height(), devicePixelRatioValue);
+
+    if (m_hasInitializedCameraViewport) {
+      m_camera.resizePreserveViewportOrigin(viewportWidthPixels, viewportHeightPixels);
+    } else {
+      m_camera.resize(viewportWidthPixels, viewportHeightPixels);
+      m_hasInitializedCameraViewport = true;
+    }
+
+    requestUpdate();
     QWindow::resizeEvent(event);
   }
 } // Ui

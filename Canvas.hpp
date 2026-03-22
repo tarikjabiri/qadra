@@ -44,6 +44,7 @@ namespace Qadra::Ui {
   private:
     QOpenGLContext *m_context = nullptr;
     bool m_initialized = false;
+    bool m_hasInitializedCameraViewport = false;
 
     Core::Camera m_camera;
     QPointF m_lastMousePosition;

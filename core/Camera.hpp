@@ -14,6 +14,8 @@ namespace Qadra::Core {
 
     void resize(int width, int height);
 
+    void resizePreserveViewportOrigin(int width, int height);
+
     glm::dvec2 screenToWorld(const glm::dvec2 &screen) const;
 
     [[nodiscard]] const glm::dmat4 &viewProjection() const { return m_viewProjection; }

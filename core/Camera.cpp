@@ -21,6 +21,20 @@ namespace Qadra::Core {
     compute();
   }
 
+  void Camera::resizePreserveViewportOrigin(const int width, const int height) {
+    const glm::dvec2 viewportOriginWorld = screenToWorld(glm::dvec2(0.0, 0.0));
+
+    m_width = width;
+    m_height = height;
+
+    const double halfWidth = static_cast<double>(m_width) / (2.0 * m_zoom);
+    const double halfHeight = static_cast<double>(m_height) / (2.0 * m_zoom);
+
+    m_position.x = viewportOriginWorld.x + halfWidth;
+    m_position.y = viewportOriginWorld.y - halfHeight;
+    compute();
+  }
+
   glm::dvec2 Camera::screenToWorld(const glm::dvec2 &screen) const {
     const double x = (screen.x - static_cast<double>(m_width) / 2.0f) / m_zoom + m_position.x;
     const double y = (static_cast<double>(m_height) / 2.0f - screen.y) / m_zoom + m_position.y;
