@@ -37,6 +37,8 @@ qt_add_executable(qadra main.cpp
         Texture.hpp
         core/Camera.cpp
         core/Camera.hpp
+        core/Font.cpp
+        core/Font.hpp
         core/Grid.cpp
         core/Grid.hpp
         math/Grid.cpp
@@ -65,7 +67,16 @@ target_include_directories(qadra PRIVATE
   ${CMAKE_SOURCE_DIR}/math
 )
 
-target_link_libraries(qadra PRIVATE Qt6::Widgets Qt6::Svg Qt6::SvgWidgets glad glm)
+target_link_libraries(qadra PRIVATE
+        Qt6::Widgets
+        Qt6::Svg
+        Qt6::SvgWidgets
+        Freetype::Freetype
+        harfbuzz
+        msdfgen::msdfgen
+        glad
+        glm
+)
 
 set_target_properties(qadra PROPERTIES
         WIN32_EXECUTABLE ON
