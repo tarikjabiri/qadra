@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width="640" height="480">
+  <defs>
+    <linearGradient id="qG" x1="0" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0369A1"/>
+    </linearGradient>
+    <mask id="qm">
+      <rect width="640" height="480" fill="black"/>
+      <circle cx="320" cy="188" r="124" fill="white"/>
+      <circle cx="320" cy="188" r="63" fill="black"/>
+      <rect x="318" y="186" width="100" height="56" fill="black" transform="rotate(38 320 188)"/>
+    </mask>
+  </defs>
+
+  <rect width="640" height="480" fill="#FAFBFD"/>
+
+  <g stroke="#0369A1" stroke-width="0.3" opacity="0.04">
+    <line x1="0" y1="96" x2="640" y2="96"/><line x1="0" y1="192" x2="640" y2="192"/>
+    <line x1="0" y1="288" x2="640" y2="288"/><line x1="0" y1="384" x2="640" y2="384"/>
+    <line x1="128" y1="0" x2="128" y2="480"/><line x1="256" y1="0" x2="256" y2="480"/>
+    <line x1="384" y1="0" x2="384" y2="480"/><line x1="512" y1="0" x2="512" y2="480"/>
+  </g>
+
+  <g stroke="#E2E8F0" stroke-width="1" fill="none" opacity="0.35">
+    <path d="M16,32 L16,16 L32,16"/><path d="M608,16 L624,16 L624,32"/>
+    <path d="M624,448 L624,464 L608,464"/><path d="M32,464 L16,464 L16,448"/>
+  </g>
+
+  <circle cx="320" cy="188" r="124" fill="url(#qG)" mask="url(#qm)"/>
+  <circle cx="320" cy="188" r="7" fill="#FB7185"/>
+
+  <text x="320" y="370" font-family="sans-serif" font-size="42" font-weight="800" fill="#0C1425" text-anchor="middle" letter-spacing="-1.5">Qadra</text>
+  <text x="320" y="396" font-family="sans-serif" font-size="13" font-weight="500" fill="#94A3B8" text-anchor="middle" letter-spacing="6">2D CAD DRAFTING</text>
+
+  <!-- <line x1="260" y1="432" x2="380" y2="432" stroke="#E2E8F0" stroke-width="2" stroke-linecap="round"/> -->
+
+  <text x="320" y="466" font-family="monospace" font-size="11" font-weight="500" fill="#CBD5E1" text-anchor="middle">v1.0.0</text>
+</svg>

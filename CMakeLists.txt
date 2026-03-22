@@ -9,11 +9,16 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 set(Qt6_DIR C:/Qt/6.10.2/msvc2022_64/lib/cmake/Qt6)
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Svg SvgWidgets)
 
 add_subdirectory(vendor)
 
 qt_standard_project_setup()
+
+set(app_icon_resource_windows "")
+if(WIN32)
+  set(app_icon_resource_windows qadra.rc)
+endif()
 
 qt_add_executable(qadra main.cpp
         Window.cpp
@@ -36,6 +41,20 @@ qt_add_executable(qadra main.cpp
         math/Grid.hpp
         GridPass.cpp
         GridPass.hpp
+        ${app_icon_resource_windows}
+)
+
+qt_add_resources(qadra "app_icons"
+        PREFIX "/icons"
+        FILES
+        qadra-icon.svg
+)
+
+qt_add_resources(qadra "app_assets"
+        PREFIX "/assets"
+        FILES
+        qadra-splash-dark.svg
+        qadra-splash-light.svg
 )
 
 target_include_directories(qadra PRIVATE
@@ -44,7 +63,7 @@ target_include_directories(qadra PRIVATE
   ${CMAKE_SOURCE_DIR}/math
 )
 
-target_link_libraries(qadra PRIVATE Qt6::Widgets glad glm)
+target_link_libraries(qadra PRIVATE Qt6::Widgets Qt6::Svg Qt6::SvgWidgets glad glm)
 
 set_target_properties(qadra PROPERTIES
         WIN32_EXECUTABLE ON
