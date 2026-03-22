@@ -2,6 +2,7 @@
 #define QADRA_MATH_GRID_HPP
 
 #include <glm/glm.hpp>
+#include <vector>
 
 #include "Camera.hpp"
 

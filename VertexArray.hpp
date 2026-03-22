@@ -35,6 +35,8 @@ namespace Qadra::GL {
 
     void attribute(const Attribute &attr) const noexcept;
 
+    void bindingDivisor(GLuint bindingIndex, GLuint divisor) const noexcept;
+
     void attachVertexBuffer(GLuint bindingIndex, const Buffer &buffer, GLintptr offset, GLsizei stride) const;
 
     void attachElementBuffer(const Buffer &buffer) const;

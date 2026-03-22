@@ -1,6 +1,7 @@
 #include <glad/gl.h>
 #include "Canvas.hpp"
 
+#include <cmath>
 #include <QOpenGLContext>
 #include <QMessageBox>
 #include <QMainWindow>
@@ -16,13 +17,11 @@ namespace Qadra::Ui {
     setSurfaceType(OpenGLSurface);
 
     QSurfaceFormat format;
-    // format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
     format.setProfile(QSurfaceFormat::CoreProfile);
     format.setVersion(4, 6);
-    // format.setDepthBufferSize(24);
-    // format.setAlphaBufferSize(8);
+    format.setAlphaBufferSize(8);
     format.setSwapInterval(0);
-    // format.setSamples(4);
+    format.setSamples(4);
     setFormat(format);
 
     m_context = new QOpenGLContext(this);
@@ -137,18 +136,20 @@ namespace Qadra::Ui {
   void Canvas::render() {
     m_context->makeCurrent(this);
 
-    const GLsizei w = std::floor(width() * devicePixelRatio());
-    const GLsizei h = std::floor(height() * devicePixelRatio());
+    const GLsizei viewportWidthPixels = std::floor(width() * devicePixelRatio());
+    const GLsizei viewportHeightPixels = std::floor(height() * devicePixelRatio());
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_MULTISAMPLE);
 
-    glViewport(0, 0, w, h);
-    glClearColor(0.035f, 0.040f, 0.048f, 1.0f); // dark charcoal, not pure black
+    glViewport(0, 0, viewportWidthPixels, viewportHeightPixels);
+    glClearColor(0.09f, 0.10f, 0.12f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
 
-    m_gridPass->render(m_camera);
+    m_gridPass->render(m_camera, glm::vec2(static_cast<float>(viewportWidthPixels),
+                                           static_cast<float>(viewportHeightPixels)));
 
     m_vertexArray->bind();
     m_buffer->bind();

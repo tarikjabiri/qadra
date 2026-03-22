@@ -9,16 +9,19 @@
 namespace Qadra::Render {
   class GridPass {
   public:
-    struct Vertex {
-      glm::dvec2 position;
-      glm::dvec4 color;
+    struct Segment {
+      glm::dvec2 from;
+      glm::dvec2 to;
+      glm::vec4 color;
+      float lineWidthPixels = 1.0f;
+      float antiAliasWidthPixels = 1.0f;
     };
 
     GridPass() = default;
 
     void init(const QString &vertexSource, const QString &fragmentSource);
 
-    void render(const Core::Camera &camera) const;
+    void render(const Core::Camera &camera, const glm::vec2 &viewportSizePixels) const;
 
   private:
     GL::Buffer m_vbo;

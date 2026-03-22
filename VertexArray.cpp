@@ -42,6 +42,10 @@ namespace Qadra::GL {
     glVertexArrayAttribBinding(m_handle, attr.index, attr.bindingIndex);
   }
 
+  void VertexArray::bindingDivisor(const GLuint bindingIndex, const GLuint divisor) const noexcept {
+    glVertexArrayBindingDivisor(m_handle, bindingIndex, divisor);
+  }
+
   void VertexArray::attachVertexBuffer(const GLuint bindingIndex, const Buffer &buffer, const GLintptr offset,
                                        const GLsizei stride) const {
     glVertexArrayVertexBuffer(m_handle, bindingIndex, buffer.handle(), offset, stride);

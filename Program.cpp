@@ -67,6 +67,11 @@ namespace Qadra::GL {
     glProgramUniform1f(m_handle, location, value);
   }
 
+  void Program::uniform(const GLchar *name, const glm::vec2 &value) const {
+    const GLint location = glGetUniformLocation(m_handle, name);
+    glProgramUniform2f(m_handle, location, value.x, value.y);
+  }
+
   void Program::uniform(const GLchar *name, const glm::vec3 &value) const {
     const GLint location = glGetUniformLocation(m_handle, name);
     glProgramUniform3f(m_handle, location, value.x, value.y, value.z);

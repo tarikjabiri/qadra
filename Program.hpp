@@ -31,6 +31,8 @@ namespace Qadra::GL {
 
     void uniform(const GLchar *name, float value) const;
 
+    void uniform(const GLchar *name, const glm::vec2 &value) const;
+
     void uniform(const GLchar *name, const glm::vec3 &value) const;
 
     void uniform(const GLchar *name, const glm::mat4 &value) const;
