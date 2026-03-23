@@ -11,7 +11,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(Qt6_DIR C:/Qt/6.10.2/msvc2022_64/lib/cmake/Qt6)
 set(OpenCASCADE_DIR "D:/3rd-party/opencascade-7.9.3-vc14-64/cmake")
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Svg SvgWidgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets OpenGLWidgets Svg SvgWidgets)
 find_package(OpenCASCADE REQUIRED CONFIG)
 
 add_subdirectory(vendor)
@@ -24,6 +24,23 @@ if(WIN32)
 endif()
 
 qt_add_executable(qadra main.cpp
+        Command.hpp
+        CommandManager.cpp
+        CommandManager.hpp
+        CommandDockWidget.cpp
+        CommandDockWidget.hpp
+        DebugTextOverlay.cpp
+        DebugTextOverlay.hpp
+        CanvasFontCatalog.cpp
+        CanvasFontCatalog.hpp
+        InlineTextEditPresenter.cpp
+        InlineTextEditPresenter.hpp
+        InlineTextInputController.cpp
+        InlineTextInputController.hpp
+        InlineTextEditSessionController.cpp
+        InlineTextEditSessionController.hpp
+        TextCreateCommand.cpp
+        TextCreateCommand.hpp
         Window.cpp
         Window.hpp
         Canvas.cpp
@@ -40,12 +57,20 @@ qt_add_executable(qadra main.cpp
         Texture.hpp
         core/Camera.cpp
         core/Camera.hpp
+        core/Document.cpp
+        core/Document.hpp
         core/Font.cpp
         core/Font.hpp
         core/Grid.cpp
         core/Grid.hpp
+        core/InlineTextEditLayout.cpp
+        core/InlineTextEditLayout.hpp
+        core/LineRenderer.cpp
+        core/LineRenderer.hpp
         core/OrientedBoxRenderer.cpp
         core/OrientedBoxRenderer.hpp
+        core/TextEntity.cpp
+        core/TextEntity.hpp
         core/TextLayout.cpp
         core/TextLayout.hpp
         core/TextRenderer.cpp
@@ -78,6 +103,7 @@ target_include_directories(qadra PRIVATE
 
 target_link_libraries(qadra PRIVATE
         Qt6::Widgets
+        Qt6::OpenGLWidgets
         Qt6::Svg
         Qt6::SvgWidgets
         Freetype::Freetype

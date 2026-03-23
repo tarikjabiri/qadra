@@ -4,11 +4,32 @@
 #include <msdfgen.h>
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
 namespace {
   constexpr double angleThresholdRadians = 3.0;
+
+  struct ScopedHarfbuzzBuffer {
+    ScopedHarfbuzzBuffer()
+      : handle(hb_buffer_create()) {
+    }
+
+    hb_buffer_t *handle{};
+
+    ~ScopedHarfbuzzBuffer() {
+      if (handle) {
+        hb_buffer_destroy(handle);
+      }
+    }
+
+    ScopedHarfbuzzBuffer(const ScopedHarfbuzzBuffer &) = delete;
+    ScopedHarfbuzzBuffer &operator=(const ScopedHarfbuzzBuffer &) = delete;
+    ScopedHarfbuzzBuffer(ScopedHarfbuzzBuffer &&) = delete;
+    ScopedHarfbuzzBuffer &operator=(ScopedHarfbuzzBuffer &&) = delete;
+  };
 
   struct GlyphProjectionData {
     msdfgen::Projection projection;
@@ -73,6 +94,7 @@ namespace {
   [[nodiscard]] std::vector<float> blankGlyphPixels(const int glyphBitmapSizePixels) {
     return std::vector<float>(static_cast<std::size_t>(glyphBitmapSizePixels) * glyphBitmapSizePixels * 3, 0.0f);
   }
+
 }
 
 namespace Qadra::Core {
@@ -82,7 +104,7 @@ namespace Qadra::Core {
       if (atlasSize <= 0) {
         throw std::runtime_error("Font atlas size must be positive");
       }
-      if (glyphSlotSizePixels() > atlasSize) {
+      if ((m_glyphBitmapSizePixels + 2 * m_atlasGutterPixels) > atlasSize) {
         throw std::runtime_error("Glyph slot size exceeds the atlas size");
       }
 
@@ -118,11 +140,6 @@ namespace Qadra::Core {
         throw std::runtime_error(fontError(path, "HarfBuzz font creation failed"));
       }
 
-      m_harfbuzzBuffer = hb_buffer_create();
-      if (!m_harfbuzzBuffer) {
-        throw std::runtime_error(fontError(path, "HarfBuzz buffer creation failed"));
-      }
-
       const int fontUnitsPerEm = m_freetypeFace->units_per_EM > 0 ? m_freetypeFace->units_per_EM : 1024;
       hb_font_set_scale(m_harfbuzzFont, fontUnitsPerEm, fontUnitsPerEm);
       hb_font_make_immutable(m_harfbuzzFont);
@@ -145,6 +162,9 @@ namespace Qadra::Core {
       m_lineHeight = metrics.lineHeight;
       m_ascender = metrics.ascenderY;
       m_descender = metrics.descenderY;
+      m_maximumGlyphBoundsMinimumY = m_descender;
+      m_maximumGlyphBoundsMaximumY = m_ascender;
+      computeMaximumGlyphBounds();
     } catch (...) {
       if (m_msdfgenFont) {
         msdfgen::destroyFont(m_msdfgenFont);
@@ -153,10 +173,6 @@ namespace Qadra::Core {
       if (m_msdfgenFreetype) {
         msdfgen::deinitializeFreetype(m_msdfgenFreetype);
         m_msdfgenFreetype = nullptr;
-      }
-      if (m_harfbuzzBuffer) {
-        hb_buffer_destroy(m_harfbuzzBuffer);
-        m_harfbuzzBuffer = nullptr;
       }
       if (m_harfbuzzFont) {
         hb_font_destroy(m_harfbuzzFont);
@@ -181,9 +197,6 @@ namespace Qadra::Core {
     if (m_msdfgenFreetype) {
       msdfgen::deinitializeFreetype(m_msdfgenFreetype);
     }
-    if (m_harfbuzzBuffer) {
-      hb_buffer_destroy(m_harfbuzzBuffer);
-    }
     if (m_harfbuzzFont) {
       hb_font_destroy(m_harfbuzzFont);
     }
@@ -200,20 +213,25 @@ namespace Qadra::Core {
       return {};
     }
 
-    hb_buffer_reset(m_harfbuzzBuffer);
-    hb_buffer_add_utf8(m_harfbuzzBuffer, text.c_str(), static_cast<int>(text.size()), 0, static_cast<int>(text.size()));
-    hb_buffer_guess_segment_properties(m_harfbuzzBuffer);
-    hb_shape(m_harfbuzzFont, m_harfbuzzBuffer, nullptr, 0);
+    ScopedHarfbuzzBuffer harfbuzzBuffer;
+    if (!harfbuzzBuffer.handle) {
+      throw std::runtime_error("HarfBuzz buffer creation failed");
+    }
+
+    hb_buffer_add_utf8(harfbuzzBuffer.handle, text.c_str(), static_cast<int>(text.size()), 0, static_cast<int>(text.size()));
+    hb_buffer_guess_segment_properties(harfbuzzBuffer.handle);
+    hb_shape(m_harfbuzzFont, harfbuzzBuffer.handle, nullptr, 0);
 
     unsigned int glyphCount = 0;
-    const hb_glyph_info_t *glyphInfos = hb_buffer_get_glyph_infos(m_harfbuzzBuffer, &glyphCount);
-    const hb_glyph_position_t *glyphPositions = hb_buffer_get_glyph_positions(m_harfbuzzBuffer, &glyphCount);
+    const hb_glyph_info_t *glyphInfos = hb_buffer_get_glyph_infos(harfbuzzBuffer.handle, &glyphCount);
+    const hb_glyph_position_t *glyphPositions = hb_buffer_get_glyph_positions(harfbuzzBuffer.handle, &glyphCount);
 
     std::vector<ShapedGlyph> shapedGlyphs;
     shapedGlyphs.reserve(glyphCount);
     for (unsigned int i = 0; i < glyphCount; ++i) {
       shapedGlyphs.push_back({
         .glyphId = glyphInfos[i].codepoint,
+        .cluster = glyphInfos[i].cluster,
         .offset = glm::dvec2(glyphPositions[i].x_offset, glyphPositions[i].y_offset),
         .advance = glm::dvec2(glyphPositions[i].x_advance, glyphPositions[i].y_advance),
       });
@@ -232,18 +250,22 @@ namespace Qadra::Core {
     return m_glyphs.at(glyphId);
   }
 
-  GlyphDebugImage Font::debugGlyphDistanceField(const std::uint32_t glyphId) {
-    GeneratedGlyphDistanceField generatedGlyph = buildGlyphDistanceField(glyphId);
-    return {
-      .widthPixels = m_glyphBitmapSizePixels,
-      .heightPixels = m_glyphBitmapSizePixels,
-      .pixels = std::move(generatedGlyph.pixels),
-    };
-  }
-
   void Font::generateGlyph(const std::uint32_t glyphId) {
     GeneratedGlyphDistanceField generatedGlyph = buildGlyphDistanceField(glyphId);
-    const AtlasSlot atlasSlot = reserveAtlasSlot();
+    const bool hasPlaneBounds = generatedGlyph.planeBoundsMax.x > generatedGlyph.planeBoundsMin.x &&
+                                generatedGlyph.planeBoundsMax.y > generatedGlyph.planeBoundsMin.y;
+    const bool hasInkBounds = generatedGlyph.inkBoundsMax.x > generatedGlyph.inkBoundsMin.x &&
+                              generatedGlyph.inkBoundsMax.y > generatedGlyph.inkBoundsMin.y;
+    if (!hasPlaneBounds && !hasInkBounds) {
+      cacheEmptyGlyph(glyphId);
+      return;
+    }
+
+    const AtlasSlot atlasSlot = reserveAtlasSlot(
+      glm::ivec2(m_glyphBitmapSizePixels, m_glyphBitmapSizePixels),
+      m_atlas,
+      m_atlasCursor
+    );
     clearAtlasSlot(atlasSlot);
 
     m_atlas.upload(
@@ -259,6 +281,66 @@ namespace Qadra::Core {
     m_glyphs[glyphId] = buildGlyphInfo(atlasSlot, generatedGlyph);
   }
 
+  Font::GeneratedGlyphDistanceField Font::emptyGlyphDistanceField() const {
+    return {
+      .pixels = blankGlyphPixels(m_glyphBitmapSizePixels),
+      .planeBoundsMin = glm::vec2(0.0f),
+      .planeBoundsMax = glm::vec2(0.0f),
+      .inkBoundsMin = glm::vec2(0.0f),
+      .inkBoundsMax = glm::vec2(0.0f),
+    };
+  }
+
+  void Font::cacheEmptyGlyph(const std::uint32_t glyphId) {
+    m_glyphs[glyphId] = {
+      .cached = true,
+    };
+  }
+
+  void Font::computeMaximumGlyphBounds() {
+    double minimumY = std::numeric_limits<double>::infinity();
+    double maximumY = -std::numeric_limits<double>::infinity();
+    bool foundVisibleGlyph = false;
+
+    for (FT_UInt glyphIndex = 0; glyphIndex < m_freetypeFace->num_glyphs; ++glyphIndex) {
+      if (FT_Load_Glyph(m_freetypeFace, glyphIndex, FT_LOAD_NO_SCALE) != FT_Err_Ok) {
+        continue;
+      }
+
+      const FT_GlyphSlot glyphSlot = m_freetypeFace->glyph;
+      if (glyphSlot->metrics.height <= 0) {
+        continue;
+      }
+
+      double glyphTop = 0.0;
+      double glyphBottom = 0.0;
+      if (glyphSlot->format == FT_GLYPH_FORMAT_OUTLINE &&
+          glyphSlot->outline.n_contours > 0 &&
+          glyphSlot->outline.n_points > 0) {
+        FT_BBox outlineBounds{};
+        FT_Outline_Get_CBox(&glyphSlot->outline, &outlineBounds);
+        glyphTop = static_cast<double>(outlineBounds.yMax);
+        glyphBottom = static_cast<double>(outlineBounds.yMin);
+      } else {
+        glyphTop = static_cast<double>(glyphSlot->metrics.horiBearingY);
+        glyphBottom = glyphTop - static_cast<double>(glyphSlot->metrics.height);
+      }
+
+      if (glyphTop <= glyphBottom) {
+        continue;
+      }
+
+      minimumY = std::min(minimumY, glyphBottom);
+      maximumY = std::max(maximumY, glyphTop);
+      foundVisibleGlyph = true;
+    }
+
+    if (foundVisibleGlyph) {
+      m_maximumGlyphBoundsMinimumY = minimumY;
+      m_maximumGlyphBoundsMaximumY = maximumY;
+    }
+  }
+
   Font::GeneratedGlyphDistanceField Font::buildGlyphDistanceField(const std::uint32_t glyphId) {
     if (FT_Load_Glyph(m_freetypeFace, glyphId, FT_LOAD_NO_SCALE) != FT_Err_Ok) {
       throw std::runtime_error("Failed to load glyph metrics from FreeType");
@@ -266,11 +348,7 @@ namespace Qadra::Core {
 
     const FT_GlyphSlot glyphSlot = m_freetypeFace->glyph;
     if (glyphSlot->format != FT_GLYPH_FORMAT_OUTLINE || glyphSlot->outline.n_contours <= 0 || glyphSlot->outline.n_points <= 0) {
-      return {
-        .pixels = blankGlyphPixels(m_glyphBitmapSizePixels),
-        .planeBoundsMin = glm::vec2(0.0f),
-        .planeBoundsMax = glm::vec2(0.0f),
-      };
+      return emptyGlyphDistanceField();
     }
 
     msdfgen::Shape shape;
@@ -279,22 +357,22 @@ namespace Qadra::Core {
     }
 
     if (shape.contours.empty()) {
-      return {
-        .pixels = blankGlyphPixels(m_glyphBitmapSizePixels),
-        .planeBoundsMin = glm::vec2(0.0f),
-        .planeBoundsMax = glm::vec2(0.0f),
-      };
+      return emptyGlyphDistanceField();
     }
 
     shape.normalize();
     msdfgen::edgeColoringSimple(shape, angleThresholdRadians, glyphId);
+    const msdfgen::Shape::Bounds shapeBounds = shape.getBounds();
 
     const msdfgen::Range distanceFieldRangePixels(m_distanceFieldRangePixels);
     const GlyphProjectionData projectionData = createGlyphProjectionData(
-      shape.getBounds(),
+      shapeBounds,
       m_glyphBitmapSizePixels,
       distanceFieldRangePixels
     );
+
+    FT_BBox outlineBounds{};
+    FT_Outline_Get_CBox(&glyphSlot->outline, &outlineBounds);
 
     msdfgen::Bitmap<float, 3> bitmap(m_glyphBitmapSizePixels, m_glyphBitmapSizePixels);
     msdfgen::generateMSDF(bitmap, shape, msdfgen::SDFTransformation(projectionData.projection, projectionData.shapeRange));
@@ -312,25 +390,38 @@ namespace Qadra::Core {
         static_cast<float>(projectionData.projection.unprojectX(m_glyphBitmapSizePixels)),
         static_cast<float>(projectionData.projection.unprojectY(m_glyphBitmapSizePixels))
       ),
+      .inkBoundsMin = glm::vec2(
+        static_cast<float>(outlineBounds.xMin),
+        static_cast<float>(outlineBounds.yMin)
+      ),
+      .inkBoundsMax = glm::vec2(
+        static_cast<float>(outlineBounds.xMax),
+        static_cast<float>(outlineBounds.yMax)
+      ),
     };
   }
 
   void Font::clearAtlasSlot(const AtlasSlot &atlasSlot) const {
-    const int glyphSlotSize = glyphSlotSizePixels();
-    const std::vector<float> clearPixels(static_cast<std::size_t>(glyphSlotSize) * glyphSlotSize * 3, 0.0f);
+    const int slotWidthPixels = atlasSlot.contentSizePixels.x + 2 * m_atlasGutterPixels;
+    const int slotHeightPixels = atlasSlot.contentSizePixels.y + 2 * m_atlasGutterPixels;
+    const std::vector<float> clearPixels(
+      static_cast<std::size_t>(slotWidthPixels) * static_cast<std::size_t>(slotHeightPixels) * 3,
+      0.0f
+    );
 
     m_atlas.upload(
       atlasSlot.outerOriginPixels.x,
       atlasSlot.outerOriginPixels.y,
-      glyphSlotSize,
-      glyphSlotSize,
+      slotWidthPixels,
+      slotHeightPixels,
       GL_RGB,
       GL_FLOAT,
       clearPixels.data()
     );
   }
 
-  GlyphInfo Font::buildGlyphInfo(const AtlasSlot &atlasSlot, const GeneratedGlyphDistanceField &generatedGlyph) const {
+  GlyphInfo Font::buildGlyphInfo(const AtlasSlot &atlasSlot,
+                                 const GeneratedGlyphDistanceField &generatedGlyph) const {
     const float atlasWidth = static_cast<float>(m_atlas.width());
     const float atlasHeight = static_cast<float>(m_atlas.height());
     const float halfTexelX = 0.5f / atlasWidth;
@@ -341,43 +432,48 @@ namespace Qadra::Core {
       static_cast<float>(atlasSlot.innerOriginPixels.y) / atlasHeight
     );
     const glm::vec2 uploadUvMax(
-      static_cast<float>(atlasSlot.innerOriginPixels.x + m_glyphBitmapSizePixels) / atlasWidth,
-      static_cast<float>(atlasSlot.innerOriginPixels.y + m_glyphBitmapSizePixels) / atlasHeight
+      static_cast<float>(atlasSlot.innerOriginPixels.x + atlasSlot.contentSizePixels.x) / atlasWidth,
+      static_cast<float>(atlasSlot.innerOriginPixels.y + atlasSlot.contentSizePixels.y) / atlasHeight
     );
 
     return {
       .planeBoundsMin = generatedGlyph.planeBoundsMin,
       .planeBoundsMax = generatedGlyph.planeBoundsMax,
+      .inkBoundsMin = generatedGlyph.inkBoundsMin,
+      .inkBoundsMax = generatedGlyph.inkBoundsMax,
       .uvMin = uploadUvMin + glm::vec2(halfTexelX, halfTexelY),
       .uvMax = uploadUvMax - glm::vec2(halfTexelX, halfTexelY),
       .cached = true,
     };
   }
 
-  Font::AtlasSlot Font::reserveAtlasSlot() {
-    const int glyphSlotSize = glyphSlotSizePixels();
-    if (m_nextAtlasWriteXPixels + glyphSlotSize > m_atlas.width()) {
-      m_nextAtlasWriteXPixels = 0;
-      m_nextAtlasWriteYPixels += m_currentAtlasRowHeightPixels;
-      m_currentAtlasRowHeightPixels = 0;
+  Font::AtlasSlot Font::reserveAtlasSlot(const glm::ivec2 &contentSizePixels,
+                                         const GL::Texture &atlas,
+                                         AtlasWriteCursor &cursor) const {
+    const int slotWidthPixels = contentSizePixels.x + 2 * m_atlasGutterPixels;
+    const int slotHeightPixels = contentSizePixels.y + 2 * m_atlasGutterPixels;
+    if (slotWidthPixels > atlas.width() || slotHeightPixels > atlas.height()) {
+      throw std::runtime_error("Glyph bitmap does not fit into the font atlas");
+    }
+    if (cursor.nextWriteXPixels + slotWidthPixels > atlas.width()) {
+      cursor.nextWriteXPixels = 0;
+      cursor.nextWriteYPixels += cursor.currentRowHeightPixels;
+      cursor.currentRowHeightPixels = 0;
     }
 
-    if (m_nextAtlasWriteYPixels + glyphSlotSize > m_atlas.height()) {
+    if (cursor.nextWriteYPixels + slotHeightPixels > atlas.height()) {
       throw std::runtime_error("Font atlas is full");
     }
 
     const AtlasSlot atlasSlot{
-      .outerOriginPixels = glm::ivec2(m_nextAtlasWriteXPixels, m_nextAtlasWriteYPixels),
-      .innerOriginPixels = glm::ivec2(m_nextAtlasWriteXPixels + m_atlasGutterPixels,
-                                      m_nextAtlasWriteYPixels + m_atlasGutterPixels),
+      .outerOriginPixels = glm::ivec2(cursor.nextWriteXPixels, cursor.nextWriteYPixels),
+      .innerOriginPixels = glm::ivec2(cursor.nextWriteXPixels + m_atlasGutterPixels,
+                                      cursor.nextWriteYPixels + m_atlasGutterPixels),
+      .contentSizePixels = contentSizePixels,
     };
 
-    m_nextAtlasWriteXPixels += glyphSlotSize;
-    m_currentAtlasRowHeightPixels = std::max(m_currentAtlasRowHeightPixels, glyphSlotSize);
+    cursor.nextWriteXPixels += slotWidthPixels;
+    cursor.currentRowHeightPixels = std::max(cursor.currentRowHeightPixels, slotHeightPixels);
     return atlasSlot;
-  }
-
-  int Font::glyphSlotSizePixels() const noexcept {
-    return m_glyphBitmapSizePixels + 2 * m_atlasGutterPixels;
   }
 } // Qadra::Core

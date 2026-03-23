@@ -6,7 +6,7 @@
 #include <limits>
 
 namespace Qadra::Core {
-  TextLayoutBounds measureTextLocalBounds(Font &font, const std::string &text, const double height) {
+  TextLayout measureTextLayout(Font &font, const std::string &text, const double height) {
     const double fontHeight = font.ascender() - font.descender();
     if (text.empty() || height <= 0.0 || fontHeight <= 0.0) {
       return {};
@@ -24,38 +24,87 @@ namespace Qadra::Core {
       -std::numeric_limits<double>::infinity(),
       -std::numeric_limits<double>::infinity()
     );
+    glm::dvec2 planeMinimum(
+      std::numeric_limits<double>::infinity(),
+      std::numeric_limits<double>::infinity()
+    );
+    glm::dvec2 planeMaximum(
+      -std::numeric_limits<double>::infinity(),
+      -std::numeric_limits<double>::infinity()
+    );
     bool hasVisibleBounds = false;
+    bool hasPlaneBounds = false;
+    TextLayout layout;
+    layout.glyphs.reserve(shapedGlyphs.size());
 
     for (const ShapedGlyph &shapedGlyph: shapedGlyphs) {
       const GlyphInfo &glyph = font.glyph(shapedGlyph.glyphId);
-      const glm::dvec2 glyphBoundsMinimum = glm::dvec2(glyph.planeBoundsMin) * worldScale;
-      const glm::dvec2 glyphBoundsMaximum = glm::dvec2(glyph.planeBoundsMax) * worldScale;
       const glm::dvec2 shapedOffset = shapedGlyph.offset * worldScale;
-      const glm::dvec2 glyphBottomLeft = cursor + shapedOffset + glyphBoundsMinimum;
-      const glm::dvec2 glyphTopRight = cursor + shapedOffset + glyphBoundsMaximum;
+      const glm::dvec2 glyphOrigin = cursor + shapedOffset;
+      const glm::dvec2 inkBoundsMinimum = glyphOrigin + glm::dvec2(glyph.inkBoundsMin) * worldScale;
+      const glm::dvec2 inkBoundsMaximum = glyphOrigin + glm::dvec2(glyph.inkBoundsMax) * worldScale;
+      const glm::dvec2 planeBoundsMinimum = glyphOrigin + glm::dvec2(glyph.planeBoundsMin) * worldScale;
+      const glm::dvec2 planeBoundsMaximum = glyphOrigin + glm::dvec2(glyph.planeBoundsMax) * worldScale;
+      const glm::dvec2 advance = shapedGlyph.advance * worldScale;
 
-      if (glyphTopRight.x > glyphBottomLeft.x && glyphTopRight.y > glyphBottomLeft.y) {
-        minimum.x = std::min(minimum.x, glyphBottomLeft.x);
-        minimum.y = std::min(minimum.y, glyphBottomLeft.y);
-        maximum.x = std::max(maximum.x, glyphTopRight.x);
-        maximum.y = std::max(maximum.y, glyphTopRight.y);
+      if (inkBoundsMaximum.x > inkBoundsMinimum.x && inkBoundsMaximum.y > inkBoundsMinimum.y) {
+        minimum.x = std::min(minimum.x, inkBoundsMinimum.x);
+        minimum.y = std::min(minimum.y, inkBoundsMinimum.y);
+        maximum.x = std::max(maximum.x, inkBoundsMaximum.x);
+        maximum.y = std::max(maximum.y, inkBoundsMaximum.y);
         hasVisibleBounds = true;
       }
 
-      cursor += shapedGlyph.advance * worldScale;
+      if (planeBoundsMaximum.x > planeBoundsMinimum.x && planeBoundsMaximum.y > planeBoundsMinimum.y) {
+        planeMinimum.x = std::min(planeMinimum.x, planeBoundsMinimum.x);
+        planeMinimum.y = std::min(planeMinimum.y, planeBoundsMinimum.y);
+        planeMaximum.x = std::max(planeMaximum.x, planeBoundsMaximum.x);
+        planeMaximum.y = std::max(planeMaximum.y, planeBoundsMaximum.y);
+        hasPlaneBounds = true;
+      }
+
+      layout.glyphs.push_back({
+        .glyphId = shapedGlyph.glyphId,
+        .cluster = shapedGlyph.cluster,
+        .origin = glyphOrigin,
+        .advance = advance,
+        .uvMin = glyph.uvMin,
+        .uvMax = glyph.uvMax,
+        .inkBounds = {.minimum = inkBoundsMinimum, .maximum = inkBoundsMaximum},
+        .planeBounds = {.minimum = planeBoundsMinimum, .maximum = planeBoundsMaximum},
+      });
+
+      cursor += advance;
     }
 
+    layout.advance = cursor;
+
     if (!hasVisibleBounds) {
-      return {
+      layout.inkBounds = {
         .minimum = glm::dvec2(std::min(0.0, cursor.x), std::min(0.0, cursor.y)),
         .maximum = glm::dvec2(std::max(0.0, cursor.x), std::max(0.0, cursor.y))
       };
+    } else {
+      layout.inkBounds = {
+        .minimum = minimum,
+        .maximum = maximum
+      };
     }
 
-    return {
-      .minimum = minimum,
-      .maximum = maximum
-    };
+    if (!hasPlaneBounds) {
+      layout.planeBounds = layout.inkBounds;
+    } else {
+      layout.planeBounds = {
+        .minimum = planeMinimum,
+        .maximum = planeMaximum
+      };
+    }
+
+    return layout;
+  }
+
+  TextLayoutBounds measureTextLocalBounds(Font &font, const std::string &text, const double height) {
+    return measureTextLayout(font, text, height).inkBounds;
   }
 
   std::array<glm::dvec2, 4> orientedTextCorners(const glm::dvec2 &position,

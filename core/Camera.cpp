@@ -41,6 +41,12 @@ namespace Qadra::Core {
     return {x, y};
   }
 
+  glm::dvec2 Camera::worldToScreen(const glm::dvec2 &world) const {
+    const double x = (world.x - m_position.x) * m_zoom + static_cast<double>(m_width) / 2.0;
+    const double y = static_cast<double>(m_height) / 2.0 - (world.y - m_position.y) * m_zoom;
+    return {x, y};
+  }
+
   void Camera::compute() {
     const double halfWidth = (static_cast<double>(m_width) / 2.0f) / m_zoom;
     const double halfHeight = (static_cast<double>(m_height) / 2.0f) / m_zoom;

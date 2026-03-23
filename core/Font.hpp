@@ -3,6 +3,7 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_OUTLINE_H
 
 #include <hb.h>
 #include <glm/glm.hpp>
@@ -24,19 +25,16 @@ namespace Qadra::Core {
   struct GlyphInfo {
     glm::vec2 planeBoundsMin{0.0f};
     glm::vec2 planeBoundsMax{0.0f};
+    glm::vec2 inkBoundsMin{0.0f};
+    glm::vec2 inkBoundsMax{0.0f};
     glm::vec2 uvMin{0.0f};
     glm::vec2 uvMax{0.0f};
     bool cached{false};
   };
 
-  struct GlyphDebugImage {
-    int widthPixels{};
-    int heightPixels{};
-    std::vector<float> pixels;
-  };
-
   struct ShapedGlyph {
     std::uint32_t glyphId{};
+    std::uint32_t cluster{};
     glm::dvec2 offset{0.0};
     glm::dvec2 advance{0.0};
   };
@@ -63,48 +61,62 @@ namespace Qadra::Core {
 
     [[nodiscard]] double descender() const noexcept { return m_descender; }
 
-    [[nodiscard]] double distanceFieldRangePixels() const noexcept { return m_distanceFieldRangePixels; }
+    [[nodiscard]] double maximumGlyphBoundsMinimumY() const noexcept { return m_maximumGlyphBoundsMinimumY; }
 
-    [[nodiscard]] GlyphDebugImage debugGlyphDistanceField(std::uint32_t glyphId);
+    [[nodiscard]] double maximumGlyphBoundsMaximumY() const noexcept { return m_maximumGlyphBoundsMaximumY; }
+
+    [[nodiscard]] double distanceFieldRangePixels() const noexcept { return m_distanceFieldRangePixels; }
 
   private:
     struct AtlasSlot {
       glm::ivec2 outerOriginPixels{0};
       glm::ivec2 innerOriginPixels{0};
+      glm::ivec2 contentSizePixels{0};
+    };
+
+    struct AtlasWriteCursor {
+      int nextWriteXPixels{};
+      int nextWriteYPixels{};
+      int currentRowHeightPixels{};
     };
 
     struct GeneratedGlyphDistanceField {
       std::vector<float> pixels;
       glm::vec2 planeBoundsMin{0.0f};
       glm::vec2 planeBoundsMax{0.0f};
+      glm::vec2 inkBoundsMin{0.0f};
+      glm::vec2 inkBoundsMax{0.0f};
     };
 
     void generateGlyph(std::uint32_t glyphId);
 
     [[nodiscard]] GeneratedGlyphDistanceField buildGlyphDistanceField(std::uint32_t glyphId);
 
+    [[nodiscard]] GeneratedGlyphDistanceField emptyGlyphDistanceField() const;
+
+    void cacheEmptyGlyph(std::uint32_t glyphId);
+
+    void computeMaximumGlyphBounds();
+
     void clearAtlasSlot(const AtlasSlot &atlasSlot) const;
 
     [[nodiscard]] GlyphInfo buildGlyphInfo(const AtlasSlot &atlasSlot,
                                            const GeneratedGlyphDistanceField &generatedGlyph) const;
 
-    [[nodiscard]] AtlasSlot reserveAtlasSlot();
-
-    [[nodiscard]] int glyphSlotSizePixels() const noexcept;
+    [[nodiscard]] AtlasSlot reserveAtlasSlot(const glm::ivec2 &contentSizePixels,
+                                             const GL::Texture &atlas,
+                                             AtlasWriteCursor &cursor) const;
 
     FT_Library m_freetypeLibrary{};
     FT_Face m_freetypeFace{};
     hb_font_t *m_harfbuzzFont{};
-    hb_buffer_t *m_harfbuzzBuffer{};
     msdfgen::FreetypeHandle *m_msdfgenFreetype{};
     msdfgen::FontHandle *m_msdfgenFont{};
 
     GL::Texture m_atlas;
     std::unordered_map<std::uint32_t, GlyphInfo> m_glyphs;
 
-    int m_nextAtlasWriteXPixels{};
-    int m_nextAtlasWriteYPixels{};
-    int m_currentAtlasRowHeightPixels{};
+    AtlasWriteCursor m_atlasCursor;
     int m_glyphBitmapSizePixels{64};
     int m_atlasGutterPixels{2};
     double m_distanceFieldRangePixels{4.0};
@@ -112,6 +124,8 @@ namespace Qadra::Core {
     double m_lineHeight{};
     double m_ascender{};
     double m_descender{};
+    double m_maximumGlyphBoundsMinimumY{};
+    double m_maximumGlyphBoundsMaximumY{};
   };
 } // Qadra::Core
 

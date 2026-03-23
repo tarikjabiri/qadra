@@ -43,14 +43,10 @@ namespace Qadra::Core {
       return;
     }
 
-    const double fontHeight = m_font->ascender() - m_font->descender();
-    if (fontHeight <= 0.0) {
+    const TextLayout layout = measureTextLayout(*m_font, text, height);
+    if (layout.glyphs.empty()) {
       return;
     }
-
-    const double worldScale = height / fontHeight;
-    const auto shapedGlyphs = m_font->shape(text);
-    glm::dvec2 cursor = position;
 
     const bool shouldRotate = std::abs(rotation) > 1e-12;
     const double sine = shouldRotate ? std::sin(rotation) : 0.0;
@@ -68,34 +64,26 @@ namespace Qadra::Core {
              ) + position;
     };
 
-    for (const auto &shapedGlyph: shapedGlyphs) {
-      const GlyphInfo &glyph = m_font->glyph(shapedGlyph.glyphId);
-
-      const glm::dvec2 glyphPlaneBoundsMin = glm::dvec2(glyph.planeBoundsMin) * worldScale;
-      const glm::dvec2 glyphPlaneBoundsMax = glm::dvec2(glyph.planeBoundsMax) * worldScale;
-      const glm::dvec2 glyphSize = glyphPlaneBoundsMax - glyphPlaneBoundsMin;
+    for (const TextLayoutGlyph &layoutGlyph: layout.glyphs) {
+      const glm::dvec2 glyphSize = layoutGlyph.planeBounds.maximum - layoutGlyph.planeBounds.minimum;
       if (glyphSize.x <= 0.0 || glyphSize.y <= 0.0) {
-        cursor += shapedGlyph.advance * worldScale;
         continue;
       }
 
-      const glm::dvec2 shapedOffset = shapedGlyph.offset * worldScale;
-      const glm::dvec2 glyphBottomLeft = cursor + shapedOffset + glyphPlaneBoundsMin;
-      const glm::dvec2 glyphTopRight = cursor + shapedOffset + glyphPlaneBoundsMax;
-      const double left = glyphBottomLeft.x;
-      const double right = glyphTopRight.x;
-      const double bottom = glyphBottomLeft.y;
-      const double top = glyphTopRight.y;
+      const double left = position.x + layoutGlyph.planeBounds.minimum.x;
+      const double right = position.x + layoutGlyph.planeBounds.maximum.x;
+      const double bottom = position.y + layoutGlyph.planeBounds.minimum.y;
+      const double top = position.y + layoutGlyph.planeBounds.maximum.y;
 
       const glm::dvec2 p0 = rotateAroundOrigin(glm::dvec2(left, bottom));
       const glm::dvec2 p1 = rotateAroundOrigin(glm::dvec2(right, bottom));
       const glm::dvec2 p2 = rotateAroundOrigin(glm::dvec2(right, top));
       const glm::dvec2 p3 = rotateAroundOrigin(glm::dvec2(left, top));
 
-      const glm::vec2 uv0(glyph.uvMin.x, glyph.uvMin.y);
-      const glm::vec2 uv1(glyph.uvMax.x, glyph.uvMin.y);
-      const glm::vec2 uv2(glyph.uvMax.x, glyph.uvMax.y);
-      const glm::vec2 uv3(glyph.uvMin.x, glyph.uvMax.y);
+      const glm::vec2 uv0(layoutGlyph.uvMin.x, layoutGlyph.uvMin.y);
+      const glm::vec2 uv1(layoutGlyph.uvMax.x, layoutGlyph.uvMin.y);
+      const glm::vec2 uv2(layoutGlyph.uvMax.x, layoutGlyph.uvMax.y);
+      const glm::vec2 uv3(layoutGlyph.uvMin.x, layoutGlyph.uvMax.y);
 
       m_vertices.push_back({.position = glm::vec2(p0), .uv = uv0, .color = color});
       m_vertices.push_back({.position = glm::vec2(p1), .uv = uv1, .color = color});
@@ -103,8 +91,6 @@ namespace Qadra::Core {
       m_vertices.push_back({.position = glm::vec2(p0), .uv = uv0, .color = color});
       m_vertices.push_back({.position = glm::vec2(p2), .uv = uv2, .color = color});
       m_vertices.push_back({.position = glm::vec2(p3), .uv = uv3, .color = color});
-
-      cursor += shapedGlyph.advance * worldScale;
     }
   }
 

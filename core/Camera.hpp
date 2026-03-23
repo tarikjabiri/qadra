@@ -18,6 +18,8 @@ namespace Qadra::Core {
 
     glm::dvec2 screenToWorld(const glm::dvec2 &screen) const;
 
+    glm::dvec2 worldToScreen(const glm::dvec2 &world) const;
+
     [[nodiscard]] const glm::dmat4 &viewProjection() const { return m_viewProjection; }
 
     [[nodiscard]] double zoom() const { return m_zoom; }

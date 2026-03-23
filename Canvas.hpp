@@ -1,101 +1,129 @@
 #ifndef QADRA_UI_CANVAS_HPP
 #define QADRA_UI_CANVAS_HPP
 
-#include <QWindow>
+#include <glad/gl.h>
 
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "Grid.hpp"
-#include "Program.hpp"
-#include "VertexArray.hpp"
+#include <QOpenGLWidget>
+#include <QPointF>
+#include <QRectF>
+#include <QString>
+
 #include "Camera.hpp"
+#include "CanvasFontCatalog.hpp"
+#include "DebugTextOverlay.hpp"
 #include "Font.hpp"
 #include "GridPass.hpp"
+#include "InlineTextEditPresenter.hpp"
+#include "InlineTextEditSessionController.hpp"
+#include "LineRenderer.hpp"
 #include "OrientedBoxRenderer.hpp"
 #include "TextRenderer.hpp"
 
+class QKeyEvent;
+class QMouseEvent;
+class QWheelEvent;
+
+namespace Qadra::Core {
+  class Document;
+}
+
 namespace Qadra::Ui {
-  class Canvas : public QWindow {
+  class CommandManager;
+
+  class Canvas : public QOpenGLWidget {
     Q_OBJECT
 
   public:
-    explicit Canvas();
+    using InlineTextEditRequest = InlineTextEditSessionController::Request;
+    using InlineTextEditCallbacks = InlineTextEditSessionController::Callbacks;
 
-    static QString loadShaderSource(const QString& filename);
+    explicit Canvas(QWidget *parent = nullptr);
+
+    static QString loadShaderSource(const QString &filename);
+
+    void setDocument(Qadra::Core::Document *document);
+
+    void setCommandManager(CommandManager *commandManager);
+
+    void setDebugTextOverlayEnabled(bool enabled);
+
+    [[nodiscard]] std::string defaultFontKey() const;
+
+    [[nodiscard]] glm::vec4 defaultTextColor() const noexcept;
+
+    [[nodiscard]] Qadra::Core::Font *font(std::string_view fontKey);
+
+    [[nodiscard]] const Qadra::Core::Font *font(std::string_view fontKey) const;
+
+    void beginInlineTextEdit(const InlineTextEditRequest &request, InlineTextEditCallbacks callbacks);
+
+    void updateInlineTextEdit(const InlineTextEditRequest &request);
+
+    void endInlineTextEdit();
+
+    [[nodiscard]] bool hasActiveInlineTextEdit() const noexcept;
+
+  signals:
+    void fontsChanged();
 
   protected:
-    void exposeEvent(QExposeEvent *) override;
+    void initializeGL() override;
 
-    bool event(QEvent *) override;
+    void paintGL() override;
 
-  private:
-    void initialize();
+    void resizeGL(int width, int height) override;
 
-    void render();
-
-    static QFunctionPointer getProcAddress(const char *procName);
-
-  protected:
     void mousePressEvent(QMouseEvent *event) override;
 
     void mouseReleaseEvent(QMouseEvent *event) override;
 
     void mouseMoveEvent(QMouseEvent *event) override;
 
+    void keyPressEvent(QKeyEvent *event) override;
+
     void wheelEvent(QWheelEvent *event) override;
 
-    void resizeEvent(QResizeEvent *event) override;
-
   private:
-    struct TextEntity {
-      std::string fontKey;
-      std::string text;
-      glm::dvec2 position{0.0};
-      double height{};
-      double rotation{};
-      glm::vec4 color{1.0f};
-      glm::dvec2 localBoundsMin{0.0};
-      glm::dvec2 localBoundsMax{0.0};
-      glm::dvec2 worldBoundsMin{0.0};
-      glm::dvec2 worldBoundsMax{0.0};
-    };
+    void rebuildDebugTextOverlay();
 
-    struct LoadedFont {
-      std::string key;
-      QString path;
-      std::unique_ptr<Core::Font> font;
-    };
+    void renderTextEntities(std::span<const Qadra::Core::TextEntityData *const> textEntities,
+                            const Qadra::Core::TextLayoutBounds &visibleWorldBounds);
 
-    void loadShowcaseFonts();
+    void renderInlineTextEdit();
 
-    void buildShowcaseScene();
+    void updateInputMethodState();
 
-    [[nodiscard]] Core::Font *findFont(std::string_view fontKey);
+    [[nodiscard]] std::optional<int> inlineCursorIndexAtWorldPosition(const glm::dvec2 &worldPosition);
 
-    [[nodiscard]] const Core::Font *findFont(std::string_view fontKey) const;
+    [[nodiscard]] QRectF inlineCaretRectangleLogical();
 
-    QOpenGLContext *m_context = nullptr;
+    static QFunctionPointer getProcAddress(const char *procName);
+
     bool m_initialized = false;
     bool m_hasInitializedCameraViewport = false;
+    bool m_debugTextOverlayEnabled = false;
+    Qadra::Core::Document *m_document = nullptr;
+    CommandManager *m_commandManager = nullptr;
 
-    Core::Camera m_camera;
+    Qadra::Core::Camera m_camera;
     QPointF m_lastMousePosition;
     bool m_panning{false};
 
-    std::optional<GL::VertexArray> m_vertexArray;
-    std::optional<GL::Buffer> m_buffer;
-    std::optional<GL::Program> m_program;
-    std::optional<GL::Program> m_programGrid;
-    std::optional<Core::Grid> m_grid;
     std::optional<Render::GridPass> m_gridPass;
-    std::optional<Core::OrientedBoxRenderer> m_orientedBoxRenderer;
-    std::optional<Core::TextRenderer> m_textRenderer;
-    std::vector<LoadedFont> m_fonts;
-    std::vector<TextEntity> m_textEntities;
+    std::optional<Qadra::Core::LineRenderer> m_lineRenderer;
+    std::optional<Qadra::Core::OrientedBoxRenderer> m_orientedBoxRenderer;
+    std::optional<Qadra::Core::TextRenderer> m_textRenderer;
+    CanvasFontCatalog m_fontCatalog;
+    InlineTextEditPresenter m_inlineTextEditPresenter;
+    DebugTextOverlay m_debugTextOverlay;
+    std::unique_ptr<InlineTextEditSessionController> m_inlineTextEditController;
   };
 } // Qadra::Ui
 

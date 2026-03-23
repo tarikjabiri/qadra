@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
   Window w;
 
-  constexpr int minimumSplashDurationMilliseconds = 3900;
+  constexpr int minimumSplashDurationMilliseconds = 900;
   const int remainingSplashDurationMilliseconds = std::max(
     0,
     minimumSplashDurationMilliseconds - static_cast<int>(splashTimer.elapsed())
