@@ -14,6 +14,12 @@
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
+  app.setApplicationVersion("1.0.0");
+  app.setApplicationName("Qadra");
+  app.setOrganizationName("Qadra");
+  app.setOrganizationDomain("qadra.app");
+
+  app.setStyle("Fusion");
 
   bool isDarkTheme = app.styleHints()->colorScheme() == Qt::ColorScheme::Dark;
   if (app.styleHints()->colorScheme() == Qt::ColorScheme::Unknown) {

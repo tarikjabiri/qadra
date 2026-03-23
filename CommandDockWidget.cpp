@@ -14,19 +14,13 @@ namespace Qadra::Ui {
     layout->setContentsMargins(8, 8, 8, 8);
     layout->setSpacing(8);
 
-    auto *historyLabel = new QLabel(tr("Command History"), container);
-    layout->addWidget(historyLabel);
-
     m_historyView = new QPlainTextEdit(container);
     m_historyView->setReadOnly(true);
     m_historyView->setMinimumHeight(100);
     layout->addWidget(m_historyView);
 
-    auto *commandLabel = new QLabel(tr("Command"), container);
-    layout->addWidget(commandLabel);
-
     m_commandLine = new QLineEdit(container);
-    m_commandLine->setPlaceholderText(tr("Type a command, for example TEXT"));
+    m_commandLine->setPlaceholderText(tr("Type a command"));
     layout->addWidget(m_commandLine);
 
     setWidget(container);
@@ -42,7 +36,7 @@ namespace Qadra::Ui {
     });
   }
 
-  void CommandDockWidget::appendPrompt(const QString &prompt) {
+  void CommandDockWidget::appendPrompt(const QString &prompt) const {
     if (!prompt.trimmed().isEmpty()) {
       m_historyView->appendPlainText(prompt);
     }

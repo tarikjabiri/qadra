@@ -3,7 +3,6 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
-#include FT_OUTLINE_H
 
 #include <hb.h>
 #include <glm/glm.hpp>
@@ -11,7 +10,6 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "Texture.hpp"
@@ -49,7 +47,7 @@ namespace Qadra::Core {
 
     Font &operator=(const Font &) = delete;
 
-    std::vector<ShapedGlyph> shape(const std::string &text);
+    std::vector<ShapedGlyph> shape(const std::string &text) const;
 
     const GlyphInfo &glyph(std::uint32_t glyphId);
 
@@ -90,7 +88,7 @@ namespace Qadra::Core {
 
     void generateGlyph(std::uint32_t glyphId);
 
-    [[nodiscard]] GeneratedGlyphDistanceField buildGlyphDistanceField(std::uint32_t glyphId);
+    [[nodiscard]] GeneratedGlyphDistanceField buildGlyphDistanceField(std::uint32_t glyphId) const;
 
     [[nodiscard]] GeneratedGlyphDistanceField emptyGlyphDistanceField() const;
 

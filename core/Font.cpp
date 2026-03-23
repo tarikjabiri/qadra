@@ -4,10 +4,11 @@
 #include <msdfgen.h>
 
 #include <algorithm>
-#include <cmath>
 #include <limits>
 #include <stdexcept>
 #include <utility>
+
+#include "freetype/ftoutln.h"
 
 namespace {
   constexpr double angleThresholdRadians = 3.0;
@@ -208,12 +209,12 @@ namespace Qadra::Core {
     }
   }
 
-  std::vector<ShapedGlyph> Font::shape(const std::string &text) {
+  std::vector<ShapedGlyph> Font::shape(const std::string &text) const {
     if (text.empty()) {
       return {};
     }
 
-    ScopedHarfbuzzBuffer harfbuzzBuffer;
+    const ScopedHarfbuzzBuffer harfbuzzBuffer;
     if (!harfbuzzBuffer.handle) {
       throw std::runtime_error("HarfBuzz buffer creation failed");
     }
@@ -251,7 +252,7 @@ namespace Qadra::Core {
   }
 
   void Font::generateGlyph(const std::uint32_t glyphId) {
-    GeneratedGlyphDistanceField generatedGlyph = buildGlyphDistanceField(glyphId);
+    const GeneratedGlyphDistanceField generatedGlyph = buildGlyphDistanceField(glyphId);
     const bool hasPlaneBounds = generatedGlyph.planeBoundsMax.x > generatedGlyph.planeBoundsMin.x &&
                                 generatedGlyph.planeBoundsMax.y > generatedGlyph.planeBoundsMin.y;
     const bool hasInkBounds = generatedGlyph.inkBoundsMax.x > generatedGlyph.inkBoundsMin.x &&
@@ -341,7 +342,7 @@ namespace Qadra::Core {
     }
   }
 
-  Font::GeneratedGlyphDistanceField Font::buildGlyphDistanceField(const std::uint32_t glyphId) {
+  Font::GeneratedGlyphDistanceField Font::buildGlyphDistanceField(const std::uint32_t glyphId) const {
     if (FT_Load_Glyph(m_freetypeFace, glyphId, FT_LOAD_NO_SCALE) != FT_Err_Ok) {
       throw std::runtime_error("Failed to load glyph metrics from FreeType");
     }

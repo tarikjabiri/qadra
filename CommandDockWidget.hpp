@@ -13,7 +13,7 @@ namespace Qadra::Ui {
   public:
     explicit CommandDockWidget(const QString &title, QWidget *parent = nullptr);
 
-    void appendPrompt(const QString &prompt);
+    void appendPrompt(const QString &prompt) const;
 
   signals:
     void commandSubmitted(const QString &commandText);

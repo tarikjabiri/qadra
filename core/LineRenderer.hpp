@@ -3,9 +3,6 @@
 
 #include <vector>
 
-#include <QString>
-#include <glm/glm.hpp>
-
 #include "Buffer.hpp"
 #include "Camera.hpp"
 #include "Program.hpp"
