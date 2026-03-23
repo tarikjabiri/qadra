@@ -31,3 +31,4 @@ SeparateDefinitionBlocks: Always
 SpacesInParentheses: true
 
 CompactNamespaces: true
+AlwaysBreakTemplateDeclarations: Yes

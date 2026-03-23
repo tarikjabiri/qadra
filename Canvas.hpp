@@ -2,7 +2,9 @@
 #define QADRA_UI_CANVAS_HPP
 
 #include "Camera.hpp"
+#include "Document.hpp"
 #include "GridPass.hpp"
+#include "render/Renderer.hpp"
 
 #include <QOpenGLWidget>
 #include <QPointF>
@@ -44,11 +46,14 @@ namespace Qadra::Ui
     bool m_initialized = false;
     bool m_hasInitializedCameraViewport = false;
 
-    Qadra::Core::Camera m_camera;
+    Core::Camera m_camera;
     QPointF m_lastMousePosition;
     bool m_panning{ false };
 
     std::optional<Render::GridPass> m_gridPass;
+
+    std::optional<Render::Renderer> m_renderer;
+    Cad::Document m_document;
   };
 } // namespace Qadra::Ui
 

@@ -48,7 +48,8 @@ namespace Qadra::GL
 
     void update ( GLintptr offset, GLsizeiptr size, const GLvoid *data ) const;
 
-    template <typename T> void update ( const GLintptr offset, std::span<const T> data ) const
+    template <typename T>
+    void update ( const GLintptr offset, std::span<const T> data ) const
     {
       glNamedBufferSubData ( m_handle, offset, data.size_bytes (), data.data () );
     }

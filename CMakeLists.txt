@@ -55,6 +55,23 @@ qt_add_executable(qadra main.cpp
         core/GlyphAtlas.cpp
         core/GlyphAtlas.hpp
         core/GlyphData.hpp
+        math/BoxAabb.cpp
+        math/BoxAABB.hpp
+        math/BoxOBB.cpp
+        math/BoxOBB.hpp
+        core/Handle.hpp
+        core/Handle.cpp
+        entity/Entity.cpp
+        entity/Entity.hpp
+        entity/Line.cpp
+        entity/Line.hpp
+        cad/Document.cpp
+        cad/Document.hpp
+        render/LinePass.cpp
+        render/LinePass.hpp
+        entity/EntityType.hpp
+        render/Renderer.cpp
+        render/Renderer.hpp
 )
 
 qt_add_resources(qadra "app_icons"
@@ -72,7 +89,9 @@ qt_add_resources(qadra "app_assets"
 
 target_include_directories(qadra PRIVATE
   ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/cad
   ${CMAKE_SOURCE_DIR}/core
+  ${CMAKE_SOURCE_DIR}/entity
   ${CMAKE_SOURCE_DIR}/math
 )
 
@@ -115,9 +134,13 @@ install(SCRIPT ${deploy_script})
 find_program(CLANG_FORMAT clang-format)
 if(CLANG_FORMAT)
   file(GLOB SOURCES_ROOT ${CMAKE_SOURCE_DIR}/*.cpp ${CMAKE_SOURCE_DIR}/*.hpp)
+  file(GLOB SOURCES_CAD ${CMAKE_SOURCE_DIR}/cad/*.cpp ${CMAKE_SOURCE_DIR}/cad/*.hpp)
   file(GLOB SOURCES_CORE ${CMAKE_SOURCE_DIR}/core/*.cpp ${CMAKE_SOURCE_DIR}/core/*.hpp)
+  file(GLOB SOURCES_ENTITY ${CMAKE_SOURCE_DIR}/entity/*.cpp ${CMAKE_SOURCE_DIR}/entity/*.hpp)
   file(GLOB SOURCES_MATH ${CMAKE_SOURCE_DIR}/math/*.cpp ${CMAKE_SOURCE_DIR}/math/*.hpp)
-  set(ALL_SOURCES ${SOURCES_ROOT} ${SOURCES_CORE} ${SOURCES_MATH})
+  file(GLOB SOURCES_RENDER ${CMAKE_SOURCE_DIR}/render/*.cpp ${CMAKE_SOURCE_DIR}/render/*.hpp)
+
+  set(ALL_SOURCES ${SOURCES_ROOT} ${SOURCES_CAD} ${SOURCES_CORE} ${SOURCES_ENTITY} ${SOURCES_MATH} ${SOURCES_RENDER} )
   add_custom_target(format
     COMMAND "${CLANG_FORMAT}" -i ${ALL_SOURCES}
     COMMENT "Formatting source files"

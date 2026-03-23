@@ -34,6 +34,7 @@ namespace Qadra::Ui
     format.setVersion ( 4, 6 );
     format.setAlphaBufferSize ( 8 );
     format.setSwapInterval ( 0 );
+    format.setDepthBufferSize ( 24 );
     setFormat ( format );
 
     // setFocusPolicy ( Qt::StrongFocus );
@@ -62,12 +63,18 @@ namespace Qadra::Ui
     }
 
     m_gridPass.emplace ();
+    m_renderer.emplace ();
 
     const QString gridVertexSource = loadShaderSource ( "grid.vertex.glsl" );
     const QString gridFragmentSource = loadShaderSource ( "grid.fragment.glsl" );
 
     m_gridPass->init ( gridVertexSource, gridFragmentSource );
+
+    m_renderer->init ( QCoreApplication::applicationDirPath () + "/shaders" );
+
     m_initialized = true;
+
+    m_document.addLine ( { glm::dvec2 ( -100.0, -100.0 ), glm::dvec2 ( 100.0, 100.0 ) } );
   }
 
   void Canvas::paintGL ()
@@ -105,10 +112,14 @@ namespace Qadra::Ui
 
     glViewport ( 0, 0, viewportWidthPixels, viewportHeightPixels );
     glClearColor ( 0.09f, 0.10f, 0.12f, 1.0f );
-    glClear ( GL_COLOR_BUFFER_BIT );
+    glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
     m_gridPass->render ( m_camera, glm::vec2 ( static_cast<float> ( viewportWidthPixels ),
                                                static_cast<float> ( viewportHeightPixels ) ) );
+
+    glEnable ( GL_DEPTH_TEST );
+    m_renderer->render ( m_document, m_camera );
+    glDisable ( GL_DEPTH_TEST );
   }
 
   void Canvas::resizeGL ( const int, const int )
