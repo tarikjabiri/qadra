@@ -24,23 +24,6 @@ if(WIN32)
 endif()
 
 qt_add_executable(qadra main.cpp
-        Command.hpp
-        CommandManager.cpp
-        CommandManager.hpp
-        CommandDockWidget.cpp
-        CommandDockWidget.hpp
-        DebugTextOverlay.cpp
-        DebugTextOverlay.hpp
-        CanvasFontCatalog.cpp
-        CanvasFontCatalog.hpp
-        InlineTextEditPresenter.cpp
-        InlineTextEditPresenter.hpp
-        InlineTextInputController.cpp
-        InlineTextInputController.hpp
-        InlineTextEditSessionController.cpp
-        InlineTextEditSessionController.hpp
-        TextCreateCommand.cpp
-        TextCreateCommand.hpp
         Window.cpp
         Window.hpp
         Canvas.cpp
@@ -57,29 +40,21 @@ qt_add_executable(qadra main.cpp
         Texture.hpp
         core/Camera.cpp
         core/Camera.hpp
-        core/Document.cpp
-        core/Document.hpp
         core/Font.cpp
         core/Font.hpp
-        core/Grid.cpp
-        core/Grid.hpp
-        core/InlineTextEditLayout.cpp
-        core/InlineTextEditLayout.hpp
-        core/LineRenderer.cpp
-        core/LineRenderer.hpp
-        core/OrientedBoxRenderer.cpp
-        core/OrientedBoxRenderer.hpp
-        core/TextEntity.cpp
-        core/TextEntity.hpp
-        core/TextLayout.cpp
-        core/TextLayout.hpp
-        core/TextRenderer.cpp
-        core/TextRenderer.hpp
         math/Grid.cpp
         math/Grid.hpp
         GridPass.cpp
         GridPass.hpp
         ${app_icon_resource_windows}
+        core/FontEngine.cpp
+        core/FontEngine.hpp
+        core/TextShaper.cpp
+        core/TextShaper.hpp
+        core/ShapedGlyph.hpp
+        core/GlyphAtlas.cpp
+        core/GlyphAtlas.hpp
+        core/GlyphData.hpp
 )
 
 qt_add_resources(qadra "app_icons"
@@ -108,7 +83,7 @@ target_link_libraries(qadra PRIVATE
         Qt6::SvgWidgets
         Freetype::Freetype
         harfbuzz
-        msdfgen::msdfgen
+        msdf-atlas-gen
         glad
         glm
 )
@@ -136,3 +111,15 @@ qt_generate_deploy_app_script(
         NO_UNSUPPORTED_PLATFORM_ERROR
 )
 install(SCRIPT ${deploy_script})
+
+find_program(CLANG_FORMAT clang-format)
+if(CLANG_FORMAT)
+  file(GLOB SOURCES_ROOT ${CMAKE_SOURCE_DIR}/*.cpp ${CMAKE_SOURCE_DIR}/*.hpp)
+  file(GLOB SOURCES_CORE ${CMAKE_SOURCE_DIR}/core/*.cpp ${CMAKE_SOURCE_DIR}/core/*.hpp)
+  file(GLOB SOURCES_MATH ${CMAKE_SOURCE_DIR}/math/*.cpp ${CMAKE_SOURCE_DIR}/math/*.hpp)
+  set(ALL_SOURCES ${SOURCES_ROOT} ${SOURCES_CORE} ${SOURCES_MATH})
+  add_custom_target(format
+    COMMAND "${CLANG_FORMAT}" -i ${ALL_SOURCES}
+    COMMENT "Formatting source files"
+  )
+endif()

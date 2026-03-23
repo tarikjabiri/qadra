@@ -6,10 +6,13 @@
 #include "Program.hpp"
 #include "VertexArray.hpp"
 
-namespace Qadra::Render {
-  class GridPass {
+namespace Qadra::Render
+{
+  class GridPass
+  {
   public:
-    struct Segment {
+    struct Segment
+    {
       glm::dvec2 from;
       glm::dvec2 to;
       glm::vec4 color;
@@ -17,17 +20,17 @@ namespace Qadra::Render {
       float antiAliasWidthPixels = 1.0f;
     };
 
-    GridPass() = default;
+    GridPass () = default;
 
-    void init(const QString &vertexSource, const QString &fragmentSource);
+    void init ( const QString &vertexSource, const QString &fragmentSource );
 
-    void render(const Core::Camera &camera, const glm::vec2 &viewportSizePixels) const;
+    void render ( const Core::Camera &camera, const glm::vec2 &viewportSizePixels ) const;
 
   private:
     GL::Buffer m_vbo;
     GL::VertexArray m_vao;
     GL::Program m_program;
   };
-}
+} // namespace Qadra::Render
 
-#endif //QADRA_RENDER_GRIDPASS_HPP
+#endif // QADRA_RENDER_GRIDPASS_HPP

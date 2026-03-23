@@ -1,0 +1,33 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+ColumnLimit: 100
+Language: Cpp
+Standard: c++20
+
+# Braces
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Always
+AllowShortLoopsOnASingleLine: true
+
+# Indentation
+NamespaceIndentation: All
+AccessModifierOffset: -2
+IndentCaseLabels: true
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignOperands: true
+
+# Includes
+SortIncludes: true
+IncludeBlocks: Regroup
+
+# Spacing
+SpaceBeforeParens: Always
+SpaceInEmptyBlock: true
+SpaceAfterLogicalNot: true
+SeparateDefinitionBlocks: Always
+SpacesInParentheses: true
+
+CompactNamespaces: true

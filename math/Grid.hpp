@@ -1,24 +1,27 @@
 #ifndef QADRA_MATH_GRID_HPP
 #define QADRA_MATH_GRID_HPP
 
+#include "Camera.hpp"
+
 #include <glm/glm.hpp>
 #include <vector>
 
-#include "Camera.hpp"
-
-namespace Qadra::Math {
-  class Grid {
+namespace Qadra::Math
+{
+  class Grid
+  {
   public:
-    struct Line {
+    struct Line
+    {
       glm::dvec2 start;
       glm::dvec2 end;
       bool major = false;
     };
 
-    static double niceStep(double x);
+    static double niceStep ( double x );
 
-    static std::vector<Line> compute(const Core::Camera &camera);
+    static std::vector<Line> compute ( const Core::Camera &camera );
   };
-}
+} // namespace Qadra::Math
 
-#endif //QADRA_MATH_GRID_HPP
+#endif // QADRA_MATH_GRID_HPP
