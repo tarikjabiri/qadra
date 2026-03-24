@@ -1,10 +1,9 @@
 #ifndef QADRA_UI_CANVAS_HPP
 #define QADRA_UI_CANVAS_HPP
 
-#include "Camera.hpp"
 #include "Document.hpp"
 #include "GridPass.hpp"
-#include "render/Renderer.hpp"
+#include "Renderer.hpp"
 
 #include <QOpenGLWidget>
 #include <QPointF>
@@ -54,6 +53,9 @@ namespace Qadra::Ui
 
     std::optional<Render::Renderer> m_renderer;
     Cad::Document m_document;
+
+    Core::FontEngine m_fontEngine;
+    std::optional<Core::Font> m_font;
   };
 } // namespace Qadra::Ui
 

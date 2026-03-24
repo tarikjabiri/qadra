@@ -3,17 +3,27 @@
 namespace Qadra::Core
 {
   static constexpr double kDistanceFieldRange = 4.0;
-  static constexpr double kGlyphScale = 32.0;
+  static constexpr double kGlyphScale = 64.0;
+  static constexpr double kAtlasGutterPixels = 2.0;
   static constexpr double kMiterLimit = 1.0;
   static constexpr double kMaxCornerAngle = 3.0;
 
+  msdf_atlas::GeneratorAttributes generatorAttributes ()
+  {
+    msdf_atlas::GeneratorAttributes attributes;
+    attributes.config.overlapSupport = true;
+    attributes.scanlinePass = false;
+    return attributes;
+  }
+
   GlyphAtlas::GlyphAtlas ( FontEngine &engine, const QString &path, const int size )
-      : m_texture ( size, size, GL_RGB8 )
+      : m_texture ( size, size, GL_RGB32F )
   {
     const FT_Face face = engine.face ( path );
     m_fontHandle = msdfgen::adoptFreetypeFont ( face );
-
+    m_unitsPerEm = face->units_per_EM > 0 ? face->units_per_EM : 1024;
     m_atlas = std::make_unique<AtlasType> ( size );
+    m_atlas->atlasGenerator ().setAttributes ( generatorAttributes () );
   }
 
   GlyphAtlas::~GlyphAtlas () noexcept
@@ -32,7 +42,7 @@ namespace Qadra::Core
     }
 
     msdf_atlas::GlyphGeometry glyphGeom;
-    if ( ! glyphGeom.load ( m_fontHandle, 1.0, msdfgen::GlyphIndex ( glyphId ) ) )
+    if ( ! glyphGeom.load ( m_fontHandle, 1.0 / m_unitsPerEm, msdfgen::GlyphIndex ( glyphId ) ) )
     {
       m_glyphs.insert ( glyphId, GlyphData{} );
       return m_glyphs[glyphId];
@@ -44,13 +54,17 @@ namespace Qadra::Core
       return m_glyphs[glyphId];
     }
 
-    glyphGeom.edgeColoring ( msdfgen::edgeColoringInkTrap, kMaxCornerAngle, 0 );
-    glyphGeom.wrapBox ( kGlyphScale, kDistanceFieldRange / kGlyphScale, kMiterLimit );
+    glyphGeom.edgeColoring ( msdfgen::edgeColoringSimple, kMaxCornerAngle, glyphId );
 
-    if ( m_atlas->add ( &glyphGeom, 1 ) != AtlasType::NO_CHANGE )
-    {
-      uploadAtlasToTexture ();
-    }
+    msdf_atlas::GlyphGeometry::GlyphAttributes glyphAttributes{};
+    glyphAttributes.scale = kGlyphScale;
+    glyphAttributes.range = msdfgen::Range ( kDistanceFieldRange ) / kGlyphScale;
+    glyphAttributes.miterLimit = kMiterLimit;
+    glyphAttributes.outerPadding = msdf_atlas::Padding ( kAtlasGutterPixels / kGlyphScale );
+    glyphGeom.wrapBox ( glyphAttributes );
+
+    m_atlas->add ( &glyphGeom, 1 );
+    uploadAtlasToTexture ();
 
     double al, ab, ar, at;
     double pl, pb, pr, pt;
@@ -75,13 +89,14 @@ namespace Qadra::Core
   void GlyphAtlas::uploadAtlasToTexture ()
   {
     const auto &storage = m_atlas->atlasGenerator ().atlasStorage ();
-    const auto bitmap = storage.operator msdfgen::BitmapConstRef<msdfgen::byte, 3> ();
+    const auto bitmap = storage.operator msdfgen::BitmapConstRef<float, 3> ();
 
     if ( bitmap.width != m_texture.width () || bitmap.height != m_texture.height () )
     {
-      m_texture = GL::Texture ( bitmap.width, bitmap.height, GL_RGB8 );
+      m_texture = GL::Texture ( bitmap.width, bitmap.height, GL_RGB32F );
     }
 
-    m_texture.upload ( 0, 0, bitmap.width, bitmap.height, GL_RGB, GL_UNSIGNED_BYTE, bitmap.pixels );
+    m_texture.upload ( 0, 0, bitmap.width, bitmap.height, GL_RGB, GL_FLOAT,
+                       bitmap.pixels );
   }
 } // namespace Qadra::Core

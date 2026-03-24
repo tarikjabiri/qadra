@@ -11,7 +11,7 @@ namespace Qadra::Render
   {
   public:
     void init ( const QString &shaderDir );
-    void render ( const Cad::Document &document, const Core::Camera &camera );
+    void render ( const Cad::Document &document, const Core::Camera &camera, Core::Font &font );
 
   private:
     GeometryCache m_cache;

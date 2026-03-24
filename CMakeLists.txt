@@ -76,6 +76,10 @@ qt_add_executable(qadra main.cpp
         spatial/SpatialIndex.hpp
         render/GeometryCache.cpp
         render/GeometryCache.hpp
+        entity/Text.cpp
+        entity/Text.hpp
+        render/TextPass.cpp
+        render/TextPass.hpp
 )
 
 qt_add_resources(qadra "app_icons"

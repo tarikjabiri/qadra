@@ -1,7 +1,9 @@
 #ifndef QADRA_GEOMETRY_CACHE_HPP
 #define QADRA_GEOMETRY_CACHE_HPP
 
+#include "Font.hpp"
 #include "LinePass.hpp"
+#include "TextPass.hpp"
 
 namespace Qadra::Cad
 {
@@ -16,8 +18,8 @@ namespace Qadra::Render
     GeometryCache () = default;
 
     void init ( const QString &shaderDir );
-    void sync ( const Cad::Document &document );
-    void draw ( const Core::Camera &camera );
+    void sync ( const Cad::Document &document, Core::Font &font );
+    void draw ( const Core::Camera &camera, const Core::Font &font );
 
   private:
     static constexpr int kChunkSize = 4096;
@@ -25,6 +27,7 @@ namespace Qadra::Render
     struct Chunk
     {
       std::vector<LinePass::Vertex> lineVertices;
+      std::vector<TextPass::Vertex> textVertices;
       bool dirty = true;
     };
 
@@ -32,7 +35,10 @@ namespace Qadra::Render
     std::size_t m_lastVersion = 0;
 
     LinePass m_linePass;
+    TextPass m_textPass;
+
     std::vector<LinePass::Vertex> m_mergedLineVertices;
+    std::vector<TextPass::Vertex> m_mergedTextVertices;
 
     bool m_needsUpload = true;
   };

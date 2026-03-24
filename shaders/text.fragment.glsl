@@ -4,7 +4,7 @@ in vec2 vUV;
 in vec4 vColor;
 
 uniform sampler2D u_texture;
-uniform float u_distanceFieldRangePixels;
+uniform float u_distanceFieldRange;
 
 out vec4 FragColor;
 
@@ -20,12 +20,16 @@ void main() {
     vec3 msd = texture(u_texture, vUV).rgb;
     float sd = median(msd.r, msd.g, msd.b);
 
-    vec2 unitRange = vec2(u_distanceFieldRangePixels) / vec2(textureSize(u_texture, 0));
+    vec2 unitRange = vec2(u_distanceFieldRange) / vec2(textureSize(u_texture, 0));
     vec2 screenTexSize = inversesqrt(squared(dFdx(vUV)) + squared(dFdy(vUV)));
     float screenPxRange = max(0.5 * dot(unitRange, screenTexSize), 1.0);
 
     float screenPxDistance = screenPxRange * (sd - 0.5);
     float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
+
+    if (opacity <= 0.001) {
+        discard;
+    }
 
     FragColor = vec4(vColor.rgb, vColor.a * opacity);
 }

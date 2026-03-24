@@ -7,6 +7,7 @@ namespace Qadra::Entity
   enum class EntityType
   {
     Line,
+    Text,
   };
 
 } // namespace Qadra::Entity

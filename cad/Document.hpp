@@ -2,9 +2,11 @@
 #define QADRA_DOCUMENT_HPP
 
 #include "Entity.hpp"
+#include "Font.hpp"
 #include "Handle.hpp"
 #include "Line.hpp"
 #include "SpatialIndex.hpp"
+#include "Text.hpp"
 
 #include <QHash>
 
@@ -19,6 +21,8 @@ namespace Qadra::Cad
     Core::Handle next () { return Core::Handle ( ++m_handleSeed ); }
 
     Core::Handle addLine ( const Entity::LineRecord &record );
+
+    Core::Handle addText ( const Entity::TextRecord &record, Core::Font &font );
 
     Entity::Entity *find ( Core::Handle handle ) const;
 
@@ -35,6 +39,8 @@ namespace Qadra::Cad
     void resetDirty () const;
 
   private:
+    static Math::BoxAABB computeTextBBox ( const Entity::TextRecord &record, Core::Font &font );
+
     quint64 m_handleSeed = 0;
     std::unordered_map<Core::Handle, std::unique_ptr<Entity::Entity>> m_entities;
     QList<Core::Handle> m_drawOrder;

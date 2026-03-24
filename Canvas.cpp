@@ -7,7 +7,6 @@
 #include <QSurfaceFormat>
 #include <QTextStream>
 #include <QWheelEvent>
-#include <cmath>
 #include <glad/gl.h>
 #include <stdexcept>
 
@@ -64,6 +63,7 @@ namespace Qadra::Ui
 
     m_gridPass.emplace ();
     m_renderer.emplace ();
+    m_font.emplace ( m_fontEngine, "C:/Windows/Fonts/gothice_.ttf" );
 
     const QString gridVertexSource = loadShaderSource ( "grid.vertex.glsl" );
     const QString gridFragmentSource = loadShaderSource ( "grid.fragment.glsl" );
@@ -75,6 +75,7 @@ namespace Qadra::Ui
     m_initialized = true;
 
     m_document.addLine ( { glm::dvec2 ( -100.0, -100.0 ), glm::dvec2 ( 100.0, 100.0 ) } );
+    m_document.addText ( { glm::dvec2 ( 0.0, 200.0 ), "Hello Qadra", 50.0 }, *m_font );
   }
 
   void Canvas::paintGL ()
@@ -118,7 +119,7 @@ namespace Qadra::Ui
                                                static_cast<float> ( viewportHeightPixels ) ) );
 
     glEnable ( GL_DEPTH_TEST );
-    m_renderer->render ( m_document, m_camera );
+    m_renderer->render ( m_document, m_camera, *m_font );
     glDisable ( GL_DEPTH_TEST );
   }
 

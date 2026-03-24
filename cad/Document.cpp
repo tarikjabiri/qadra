@@ -14,6 +14,22 @@ namespace Qadra::Cad
     return handle;
   }
 
+  Core::Handle Document::addText ( const Entity::TextRecord &record, Core::Font &font )
+  {
+    auto handle = next ();
+
+    const auto bbox = computeTextBBox ( record, font );
+    auto entity = std::make_unique<Entity::Text> ( handle, record, bbox );
+
+    m_spatialIndex.insert ( handle, entity->bbox () );
+    m_entities.emplace ( handle, std::move ( entity ) );
+    m_dirtyFrom = std::min ( m_dirtyFrom, static_cast<std::size_t> ( m_drawOrder.size () ) );
+    m_drawOrder.append ( handle );
+    ++m_version;
+
+    return handle;
+  }
+
   Entity::Entity *Document::find ( const Core::Handle handle ) const
   {
     const auto it = m_entities.find ( handle );
@@ -32,4 +48,42 @@ namespace Qadra::Cad
   }
 
   void Document::resetDirty () const { m_dirtyFrom = m_drawOrder.size (); }
+
+  Math::BoxAABB Document::computeTextBBox ( const Entity::TextRecord &record, Core::Font &font )
+  {
+    const auto shaped = font.shape ( record.text );
+    const double scale = record.height / font.unitsPerEm ();
+
+    double totalAdvance = 0.0;
+    for ( const auto &glyph : shaped ) totalAdvance += glyph.advance.x;
+
+    const double width = totalAdvance * scale;
+    const double ascender = font.ascender () * scale;
+    const double descender = font.descender () * scale;
+
+    const glm::dvec2 min = record.position + glm::dvec2 ( 0.0, descender );
+    const glm::dvec2 max = record.position + glm::dvec2 ( width, ascender );
+
+    if ( record.rotation == 0.0 ) return Math::BoxAABB ( min, max );
+
+    // rotated — compute enclosing AABB of the four corners
+    const double cos = std::cos ( record.rotation );
+    const double sin = std::sin ( record.rotation );
+
+    auto rotate = [&] ( const glm::dvec2 &offset ) -> glm::dvec2
+    {
+      return record.position +
+             glm::dvec2 ( offset.x * cos - offset.y * sin, offset.x * sin + offset.y * cos );
+    };
+
+    const glm::dvec2 localMin = glm::dvec2 ( 0.0, descender );
+    const glm::dvec2 localMax = glm::dvec2 ( width, ascender );
+
+    Math::BoxAABB box;
+    box.expand ( rotate ( localMin ) );
+    box.expand ( rotate ( glm::dvec2 ( localMax.x, localMin.y ) ) );
+    box.expand ( rotate ( glm::dvec2 ( localMin.x, localMax.y ) ) );
+    box.expand ( rotate ( localMax ) );
+    return box;
+  }
 } // namespace Qadra::Cad

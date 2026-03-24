@@ -8,7 +8,7 @@ namespace Qadra::GL
   class Texture
   {
   public:
-    explicit Texture ( GLsizei width, GLsizei height, GLenum internalFormat = GL_RGB8 );
+    explicit Texture ( GLsizei width, GLsizei height, GLenum internalFormat = GL_RGBA8 );
 
     ~Texture () noexcept;
 

@@ -29,14 +29,15 @@ namespace Qadra::Core
     void uploadAtlasToTexture ();
 
     using Generator =
-        msdf_atlas::ImmediateAtlasGenerator<float, 3, msdf_atlas::msdfGenerator,
-                                            msdf_atlas::BitmapAtlasStorage<msdfgen::byte, 3>>;
+    msdf_atlas::ImmediateAtlasGenerator<float, 3, msdf_atlas::msdfGenerator,
+                                        msdf_atlas::BitmapAtlasStorage<float, 3>>;
     using AtlasType = msdf_atlas::DynamicAtlas<Generator>;
 
     msdfgen::FontHandle *m_fontHandle{};
     std::unique_ptr<AtlasType> m_atlas;
     QHash<std::uint32_t, GlyphData> m_glyphs;
     GL::Texture m_texture;
+    int m_unitsPerEm;
   };
 } // namespace Qadra::Core
 
