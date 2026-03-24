@@ -12,7 +12,7 @@ namespace Qadra::Core
   {
     msdf_atlas::GeneratorAttributes attributes;
     attributes.config.overlapSupport = true;
-    attributes.scanlinePass = false;
+    attributes.scanlinePass = true;
     return attributes;
   }
 
@@ -54,7 +54,7 @@ namespace Qadra::Core
       return m_glyphs[glyphId];
     }
 
-    glyphGeom.edgeColoring ( msdfgen::edgeColoringSimple, kMaxCornerAngle, glyphId );
+    glyphGeom.edgeColoring ( msdfgen::edgeColoringInkTrap, kMaxCornerAngle, glyphId );
 
     msdf_atlas::GlyphGeometry::GlyphAttributes glyphAttributes{};
     glyphAttributes.scale = kGlyphScale;
@@ -96,7 +96,6 @@ namespace Qadra::Core
       m_texture = GL::Texture ( bitmap.width, bitmap.height, GL_RGB32F );
     }
 
-    m_texture.upload ( 0, 0, bitmap.width, bitmap.height, GL_RGB, GL_FLOAT,
-                       bitmap.pixels );
+    m_texture.upload ( 0, 0, bitmap.width, bitmap.height, GL_RGB, GL_FLOAT, bitmap.pixels );
   }
 } // namespace Qadra::Core

@@ -1,10 +1,10 @@
 #include "GeometryCache.hpp"
 
 #include "Document.hpp"
+#include <random>
 
 #include <QFile>
 #include <QTextStream>
-#include <QDebug>
 
 namespace
 {
@@ -50,11 +50,7 @@ namespace
         out.push_back ( { p0, { uvMin.x, uvMin.y }, color, depth } );
         out.push_back ( { p2, { uvMax.x, uvMax.y }, color, depth } );
         out.push_back ( { p3, { uvMin.x, uvMax.y }, color, depth } );
-        qDebug () << "p0:" << p0.x << p0.y
-          << "p2:" << p2.x << p2.y;
       }
-
-
 
       cursor += sg.advance;
     }
@@ -110,7 +106,11 @@ namespace Qadra::Render
         if ( ! entity ) continue;
 
         const float depth = static_cast<float> ( i ) / maxDepth;
-        constexpr glm::vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+        std::random_device rd;
+        std::mt19937 gen ( rd () );
+        std::uniform_real_distribution<float> dist ( 0.0f, 1.0f );
+
+        const glm::vec4 color{ dist ( gen ), dist ( gen ), dist ( gen ), 1.0f };
 
         switch ( entity->type () )
         {

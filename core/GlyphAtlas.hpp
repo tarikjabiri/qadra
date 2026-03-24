@@ -28,9 +28,8 @@ namespace Qadra::Core
   private:
     void uploadAtlasToTexture ();
 
-    using Generator =
-    msdf_atlas::ImmediateAtlasGenerator<float, 3, msdf_atlas::msdfGenerator,
-                                        msdf_atlas::BitmapAtlasStorage<float, 3>>;
+    using Generator = msdf_atlas::ImmediateAtlasGenerator<float, 3, msdf_atlas::msdfGenerator,
+                                                          msdf_atlas::BitmapAtlasStorage<float, 3>>;
     using AtlasType = msdf_atlas::DynamicAtlas<Generator>;
 
     msdfgen::FontHandle *m_fontHandle{};

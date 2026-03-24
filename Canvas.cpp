@@ -63,7 +63,7 @@ namespace Qadra::Ui
 
     m_gridPass.emplace ();
     m_renderer.emplace ();
-    m_font.emplace ( m_fontEngine, "C:/Windows/Fonts/gothice_.ttf" );
+    m_font.emplace ( m_fontEngine, "C:/Windows/Fonts/comsc.ttf" );
 
     const QString gridVertexSource = loadShaderSource ( "grid.vertex.glsl" );
     const QString gridFragmentSource = loadShaderSource ( "grid.fragment.glsl" );
@@ -75,7 +75,14 @@ namespace Qadra::Ui
     m_initialized = true;
 
     m_document.addLine ( { glm::dvec2 ( -100.0, -100.0 ), glm::dvec2 ( 100.0, 100.0 ) } );
-    m_document.addText ( { glm::dvec2 ( 0.0, 200.0 ), "Hello Qadra", 50.0 }, *m_font );
+    for ( size_t i = 0; i < 500; i++ )
+    {
+      for ( size_t j = 0; j < 500; j++ )
+      {
+        m_document.addText (
+            { glm::dvec2 ( i * 650, j * 60 ), "Hello Qadra Tarik EL JABIRI", 50.0 }, *m_font );
+      }
+    }
   }
 
   void Canvas::paintGL ()
