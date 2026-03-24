@@ -32,11 +32,11 @@ namespace Qadra::Core
     m_width = width;
     m_height = height;
 
-    const double halfWidth = static_cast<double> ( m_width ) / ( 2.0 * m_zoom );
-    const double halfHeight = static_cast<double> ( m_height ) / ( 2.0 * m_zoom );
+    const double hw = static_cast<double> ( m_width ) / ( 2.0 * m_zoom );
+    const double hh = static_cast<double> ( m_height ) / ( 2.0 * m_zoom );
 
-    m_position.x = viewportOriginWorld.x + halfWidth;
-    m_position.y = viewportOriginWorld.y - halfHeight;
+    m_position.x = viewportOriginWorld.x + hw;
+    m_position.y = viewportOriginWorld.y - hh;
     compute ();
   }
 
@@ -54,12 +54,19 @@ namespace Qadra::Core
     return { x, y };
   }
 
+  Math::BoxAABB Camera::viewportBox () const
+  {
+    const auto bottomLeft = screenToWorld ( glm::dvec2 ( 0.0, static_cast<double> ( m_height ) ) );
+    const auto topRight = screenToWorld ( glm::dvec2 ( static_cast<double> ( m_width ), 0.0 ) );
+    return Math::BoxAABB ( bottomLeft, topRight );
+  }
+
   void Camera::compute ()
   {
-    const double halfWidth = ( static_cast<double> ( m_width ) / 2.0f ) / m_zoom;
-    const double halfHeight = ( static_cast<double> ( m_height ) / 2.0f ) / m_zoom;
+    const double hw = ( static_cast<double> ( m_width ) / 2.0f ) / m_zoom;
+    const double hh = ( static_cast<double> ( m_height ) / 2.0f ) / m_zoom;
 
-    const glm::dmat4 projection = glm::ortho ( -halfWidth, halfWidth, -halfHeight, halfHeight );
+    const glm::dmat4 projection = glm::ortho ( -hw, hw, -hh, hh );
 
     const glm::dmat4 view =
         glm::translate ( glm::dmat4 ( 1.0f ), glm::dvec3 ( -m_position, 0.0f ) );

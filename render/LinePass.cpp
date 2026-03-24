@@ -25,17 +25,29 @@ namespace Qadra::Render
         { .index = 2, .size = 1, .type = GL_FLOAT, .relativeOffset = offsetof ( Vertex, depth ) } );
   }
 
-  void LinePass::render ( const Core::Camera &camera, std::span<const Vertex> vertices ) const
+  void LinePass::upload ( const std::span<const Vertex> vertices )
   {
-    if ( vertices.empty () ) return;
+    if ( vertices.empty () )
+    {
+      m_vertexCount = 0;
+      m_bufferDirty = false;
+      return;
+    }
 
-    m_vbo.allocate ( vertices, GL::Buffer::Usage::DynamicDraw );
+    m_vbo.allocate ( vertices, GL::Buffer::Usage::StaticDraw );
     m_vao.attachVertexBuffer ( 0, m_vbo, 0, sizeof ( Vertex ) );
+    m_vertexCount = vertices.size ();
+    m_bufferDirty = false;
+  }
+
+  void LinePass::render ( const Core::Camera &camera ) const
+  {
+    if ( m_vertexCount == 0 ) return;
 
     m_vao.bind ();
     m_program.bind ();
     m_program.uniform ( "u_viewProjection", camera.viewProjection () );
 
-    glDrawArrays ( GL_LINES, 0, static_cast<GLsizei> ( vertices.size () ) );
+    glDrawArrays ( GL_LINES, 0, static_cast<GLsizei> ( m_vertexCount ) );
   }
 } // namespace Qadra::Render

@@ -3,7 +3,7 @@
 
 #include "Camera.hpp"
 #include "Document.hpp"
-#include "LinePass.hpp"
+#include "GeometryCache.hpp"
 
 namespace Qadra::Render
 {
@@ -11,10 +11,10 @@ namespace Qadra::Render
   {
   public:
     void init ( const QString &shaderDir );
-    void render ( const Cad::Document &document, const Core::Camera &camera ) const;
+    void render ( const Cad::Document &document, const Core::Camera &camera );
 
   private:
-    LinePass m_linePass;
+    GeometryCache m_cache;
   };
 } // namespace Qadra::Render
 

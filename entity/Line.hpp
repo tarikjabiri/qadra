@@ -14,7 +14,7 @@ namespace Qadra::Entity
   class Line : public Entity
   {
   public:
-    Line ( Core::Handle handle, const glm::dvec2 &start, const glm::dvec2 &end );
+    Line ( Core::Handle handle, const LineRecord &record );
 
     const glm::dvec2 &start () const { return m_start; }
 

@@ -1,6 +1,8 @@
 #ifndef QADRA_CORE_CAMERA_HPP
 #define QADRA_CORE_CAMERA_HPP
 
+#include "BoxAabb.hpp"
+
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Qadra::Core
@@ -31,6 +33,8 @@ namespace Qadra::Core
     [[nodiscard]] int width () const { return m_width; }
 
     [[nodiscard]] int height () const { return m_height; }
+
+    [[nodiscard]] Math::BoxAABB viewportBox () const;
 
   private:
     void compute ();

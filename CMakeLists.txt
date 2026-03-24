@@ -72,6 +72,10 @@ qt_add_executable(qadra main.cpp
         entity/EntityType.hpp
         render/Renderer.cpp
         render/Renderer.hpp
+        spatial/SpatialIndex.cpp
+        spatial/SpatialIndex.hpp
+        render/GeometryCache.cpp
+        render/GeometryCache.hpp
 )
 
 qt_add_resources(qadra "app_icons"
@@ -93,6 +97,8 @@ target_include_directories(qadra PRIVATE
   ${CMAKE_SOURCE_DIR}/core
   ${CMAKE_SOURCE_DIR}/entity
   ${CMAKE_SOURCE_DIR}/math
+  ${CMAKE_SOURCE_DIR}/render
+  ${CMAKE_SOURCE_DIR}/spatial
 )
 
 target_link_libraries(qadra PRIVATE
@@ -105,6 +111,8 @@ target_link_libraries(qadra PRIVATE
         msdf-atlas-gen
         glad
         glm
+        Boost::geometry
+        Boost::headers
 )
 
 set_target_properties(qadra PROPERTIES
@@ -139,8 +147,18 @@ if(CLANG_FORMAT)
   file(GLOB SOURCES_ENTITY ${CMAKE_SOURCE_DIR}/entity/*.cpp ${CMAKE_SOURCE_DIR}/entity/*.hpp)
   file(GLOB SOURCES_MATH ${CMAKE_SOURCE_DIR}/math/*.cpp ${CMAKE_SOURCE_DIR}/math/*.hpp)
   file(GLOB SOURCES_RENDER ${CMAKE_SOURCE_DIR}/render/*.cpp ${CMAKE_SOURCE_DIR}/render/*.hpp)
+  file(GLOB SOURCES_SPATIAL ${CMAKE_SOURCE_DIR}/spatial/*.cpp ${CMAKE_SOURCE_DIR}/spatial/*.hpp)
 
-  set(ALL_SOURCES ${SOURCES_ROOT} ${SOURCES_CAD} ${SOURCES_CORE} ${SOURCES_ENTITY} ${SOURCES_MATH} ${SOURCES_RENDER} )
+  set(ALL_SOURCES
+    ${SOURCES_ROOT}
+    ${SOURCES_CAD}
+    ${SOURCES_CORE}
+    ${SOURCES_ENTITY}
+    ${SOURCES_MATH}
+    ${SOURCES_RENDER}
+    ${SOURCES_SPATIAL}
+  )
+
   add_custom_target(format
     COMMAND "${CLANG_FORMAT}" -i ${ALL_SOURCES}
     COMMENT "Formatting source files"

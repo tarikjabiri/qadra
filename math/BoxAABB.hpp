@@ -43,6 +43,10 @@ namespace Qadra::Math
       return BoxAABB ( m_min - glm::dvec2 ( margin ), m_max + glm::dvec2 ( margin ) );
     }
 
+    [[nodiscard]] glm::dvec2 min () const { return m_min; }
+
+    [[nodiscard]] glm::dvec2 max () const { return m_max; }
+
   private:
     glm::dvec2 m_min;
     glm::dvec2 m_max;

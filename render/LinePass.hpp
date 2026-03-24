@@ -24,12 +24,17 @@ namespace Qadra::Render
     LinePass () = default;
 
     void init ( const QString &vertexSource, const QString &fragmentSource );
-    void render ( const Core::Camera &camera, std::span<const Vertex> vertices ) const;
+
+    void upload ( std::span<const Vertex> vertices );
+
+    void render ( const Core::Camera &camera ) const;
 
   private:
     GL::Buffer m_vbo;
     GL::VertexArray m_vao;
     GL::Program m_program;
+    std::size_t m_vertexCount = 0;
+    bool m_bufferDirty = true;
   };
 } // namespace Qadra::Render
 
