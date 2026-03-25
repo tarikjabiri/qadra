@@ -2,8 +2,8 @@
 #define QADRA_RENDER_GRIDPASS_HPP
 
 #include "Camera.hpp"
-#include "gl/Program.hpp"
 #include "RenderPass.hpp"
+#include "gl/Program.hpp"
 
 namespace Qadra::Render
 {

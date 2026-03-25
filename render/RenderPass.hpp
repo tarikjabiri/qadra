@@ -1,8 +1,8 @@
 #ifndef QADRA_RENDER_PASS_HPP
 #define QADRA_RENDER_PASS_HPP
 
-#include "gl/Buffer.hpp"
 #include "Camera.hpp"
+#include "gl/Buffer.hpp"
 #include "gl/Program.hpp"
 #include "gl/VertexArray.hpp"
 
