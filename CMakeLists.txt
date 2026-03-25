@@ -22,6 +22,7 @@ set(QADRA_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/math
   ${CMAKE_SOURCE_DIR}/render
   ${CMAKE_SOURCE_DIR}/spatial
+  ${CMAKE_SOURCE_DIR}/ui
 )
 
 add_subdirectory(vendor)
@@ -32,6 +33,7 @@ add_subdirectory(entity)
 add_subdirectory(spatial)
 add_subdirectory(cad)
 add_subdirectory(render)
+add_subdirectory(ui)
 
 qt_standard_project_setup()
 
@@ -41,10 +43,6 @@ if(WIN32)
 endif()
 
 qt_add_executable(qadra main.cpp
-        Window.cpp
-        Window.hpp
-        Canvas.cpp
-        Canvas.hpp
         ${app_icon_resource_windows}
 )
 
@@ -67,13 +65,9 @@ target_include_directories(qadra PRIVATE
 
 target_link_libraries(qadra PRIVATE
         Qt6::Widgets
-        Qt6::OpenGLWidgets
         Qt6::Svg
         Qt6::SvgWidgets
-        qadra_gl
-        qadra_core
-        qadra_cad
-        qadra_render
+        qadra_ui
 )
 
 set_target_properties(qadra PROPERTIES
@@ -110,6 +104,7 @@ if(CLANG_FORMAT)
   file(GLOB SOURCES_MATH ${CMAKE_SOURCE_DIR}/math/*.cpp ${CMAKE_SOURCE_DIR}/math/*.hpp)
   file(GLOB SOURCES_RENDER ${CMAKE_SOURCE_DIR}/render/*.cpp ${CMAKE_SOURCE_DIR}/render/*.hpp)
   file(GLOB SOURCES_SPATIAL ${CMAKE_SOURCE_DIR}/spatial/*.cpp ${CMAKE_SOURCE_DIR}/spatial/*.hpp)
+  file(GLOB SOURCES_UI ${CMAKE_SOURCE_DIR}/ui/*.cpp ${CMAKE_SOURCE_DIR}/ui/*.hpp)
 
   set(ALL_SOURCES
     ${SOURCES_ROOT}
@@ -120,6 +115,7 @@ if(CLANG_FORMAT)
     ${SOURCES_MATH}
     ${SOURCES_RENDER}
     ${SOURCES_SPATIAL}
+    ${SOURCES_UI}
   )
 
   add_custom_target(format
