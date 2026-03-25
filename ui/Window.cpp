@@ -1,10 +1,10 @@
 #include "Window.hpp"
 
 #include "Canvas.hpp"
+#include "CmdLine.hpp"
 
-#include <QAction>
 #include <QIcon>
-#include <QMenuBar>
+#include <QStatusBar>
 
 Window::Window ( QWidget *parent ) : QMainWindow ( parent )
 {
@@ -14,6 +14,13 @@ Window::Window ( QWidget *parent ) : QMainWindow ( parent )
 
   m_canvas = new Qadra::Ui::Canvas ( this );
   setCentralWidget ( m_canvas );
+
+  m_cmdLine = new Qadra::Ui::CmdLine ( this );
+  addDockWidget ( Qt::BottomDockWidgetArea, m_cmdLine );
+
+  auto *statusBar = new QStatusBar ( this );
+
+  setStatusBar ( statusBar );
 }
 
 Window::~Window () = default;

@@ -3,11 +3,10 @@
 
 #include <QMainWindow>
 
-class QAction;
-
 namespace Qadra::Ui
 {
   class Canvas;
+  class CmdLine;
 } // namespace Qadra::Ui
 
 class Window : public QMainWindow
@@ -21,6 +20,7 @@ public:
 
 private:
   Qadra::Ui::Canvas *m_canvas{};
+  Qadra::Ui::CmdLine *m_cmdLine{};
 };
 
 #endif // QADRA_UI_WINDOW_HPP
