@@ -63,7 +63,7 @@ namespace Qadra::Ui
 
     m_gridPass.emplace ();
     m_renderer.emplace ();
-    m_font.emplace ( m_fontEngine, "C:/Windows/Fonts/comsc.ttf" );
+    m_font.emplace ( m_fontEngine, "C:/Program Files/JetBrains/CLion 2025.3.3/jbr/lib/fonts/FiraCode-Retina.ttf" );
 
     const QString gridVertexSource = loadShaderSource ( "grid.vertex.glsl" );
     const QString gridFragmentSource = loadShaderSource ( "grid.fragment.glsl" );
@@ -75,12 +75,12 @@ namespace Qadra::Ui
     m_initialized = true;
 
     m_document.addLine ( { glm::dvec2 ( -100.0, -100.0 ), glm::dvec2 ( 100.0, 100.0 ) } );
-    for ( size_t i = 0; i < 500; i++ )
+    for ( size_t i = 0; i < 700; i++ )
     {
-      for ( size_t j = 0; j < 500; j++ )
+      for ( size_t j = 0; j < 700; j++ )
       {
         m_document.addText (
-            { glm::dvec2 ( i * 650, j * 60 ), "Hello Qadra Tarik EL JABIRI", 50.0 }, *m_font );
+            { glm::dvec2 ( i * 1650, j * 120 ), "Hello Qadra, Developped using OpenGL/Qt", 50.0 }, *m_font );
       }
     }
   }
@@ -116,7 +116,7 @@ namespace Qadra::Ui
 
     glEnable ( GL_BLEND );
     glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-    glEnable ( GL_MULTISAMPLE );
+    //glEnable ( GL_MULTISAMPLE );
 
     glViewport ( 0, 0, viewportWidthPixels, viewportHeightPixels );
     glClearColor ( 0.09f, 0.10f, 0.12f, 1.0f );
@@ -205,11 +205,11 @@ namespace Qadra::Ui
 
   void Canvas::wheelEvent ( QWheelEvent *event )
   {
-    const float delta = event->angleDelta ().y () / 105.0f;
+    const float delta = event->angleDelta ().y () / 120.0f;
     const glm::dvec2 mouseScreenPixels =
         viewportPixels ( event->position (), devicePixelRatioF () );
     const glm::dvec2 mouseWorld = m_camera.screenToWorld ( mouseScreenPixels );
-    m_camera.zoom ( std::pow ( 1.1f, delta ), mouseWorld );
+    m_camera.zoom ( std::pow ( 1.50f, delta ), mouseWorld );
 
     update ();
     event->accept ();
