@@ -8,21 +8,25 @@
 
 namespace Qadra::Render
 {
-  void GridPass::init ( const QString &vertexSource, const QString &fragmentSource )
+  GridPass::GridPass () : RenderPass ( "grid" ) { }
+
+  void GridPass::render ( const Core::Camera &camera )
   {
-    GL::Shader vertexShader ( GL::Shader::Type::Vertex );
-    GL::Shader fragmentShader ( GL::Shader::Type::Fragment );
+    const auto viewport = glm::dvec2 ( camera.width (), camera.height () );
+    std::vector<Segment> segments = buildSegments ( camera );
+    if ( segments.empty () ) return;
 
-    if ( ! vertexShader.compile ( vertexSource ) || ! fragmentShader.compile ( fragmentSource ) )
-    {
-      throw std::runtime_error ( "Vertex shader or fragment shaders are not compiled" );
-    }
+    upload ( std::span<const Segment> ( segments ), GL::Buffer::Usage::DynamicDraw );
 
-    if ( ! m_program.link ( vertexShader, fragmentShader ) )
-    {
-      throw std::runtime_error ( "Program shader or fragment shaders are not linked" );
-    }
+    if ( ! beginRender ( camera ) ) return;
 
+    m_program.uniform ( "u_viewportSizePixels", viewport );
+
+    glDrawArraysInstanced ( GL_TRIANGLES, 0, 6, m_vertexCount );
+  }
+
+  void GridPass::setupAttributes ()
+  {
     m_vao.attribute ( { .index = 0,
                         .size = 2,
                         .type = GL_DOUBLE,
@@ -44,12 +48,14 @@ namespace Qadra::Render
     m_vao.bindingDivisor ( 0, 1 );
   }
 
-  void GridPass::render ( const Core::Camera &camera, const glm::vec2 &viewportSizePixels ) const
+  std::vector<GridPass::Segment> GridPass::buildSegments ( const Core::Camera &camera )
   {
     std::vector<Segment> segments;
     std::vector<Math::Grid::Line> lines = Math::Grid::compute ( camera );
 
-    if ( lines.empty () || viewportSizePixels.x <= 0.0f || viewportSizePixels.y <= 0.0f ) return;
+    if ( const auto viewport = glm::dvec2 ( camera.width (), camera.height () );
+         lines.empty () || viewport.x <= 0.0f || viewport.y <= 0.0f )
+      return segments;
 
     segments.reserve ( lines.size () );
 
@@ -70,16 +76,6 @@ namespace Qadra::Render
           .antiAliasWidthPixels = axis ? 1.05f : 0.9f,
       } );
     }
-
-    m_vbo.allocate ( std::span<const Segment> ( segments ), GL::Buffer::Usage::DynamicDraw );
-
-    m_vao.attachVertexBuffer ( 0, m_vbo, 0, sizeof ( Segment ) );
-
-    m_vao.bind ();
-    m_program.bind ();
-    m_program.uniform ( "u_viewProjection", camera.viewProjection () );
-    m_program.uniform ( "u_viewportSizePixels", viewportSizePixels );
-
-    glDrawArraysInstanced ( GL_TRIANGLES, 0, 6, static_cast<GLsizei> ( segments.size () ) );
+    return segments;
   }
 } // namespace Qadra::Render

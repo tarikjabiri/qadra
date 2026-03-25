@@ -1,12 +1,11 @@
 #ifndef QADRA_UI_CANVAS_HPP
 #define QADRA_UI_CANVAS_HPP
 
+#include "CameraController.hpp"
 #include "Document.hpp"
-#include "GridPass.hpp"
 #include "Renderer.hpp"
 
 #include <QOpenGLWidget>
-#include <QPointF>
 #include <QString>
 #include <optional>
 
@@ -21,8 +20,6 @@ namespace Qadra::Ui
 
   public:
     explicit Canvas ( QWidget *parent = nullptr );
-
-    static QString loadShaderSource ( const QString &filename );
 
   protected:
     void initializeGL () override;
@@ -42,17 +39,16 @@ namespace Qadra::Ui
   private:
     static QFunctionPointer getProcAddress ( const char *procName );
 
+    void updateCameraViewport ();
+
     bool m_initialized = false;
     bool m_hasInitializedCameraViewport = false;
 
     Core::Camera m_camera;
-    QPointF m_lastMousePosition;
-    bool m_panning{ false };
+    Core::CameraController m_cameraController{ m_camera };
 
-    std::optional<Render::GridPass> m_gridPass;
-
-    std::optional<Render::Renderer> m_renderer;
     Cad::Document m_document;
+    std::optional<Render::Renderer> m_renderer;
 
     Core::FontEngine m_fontEngine;
     std::optional<Core::Font> m_font;

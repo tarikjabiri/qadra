@@ -2,12 +2,29 @@
 
 namespace Qadra::Render
 {
-  void Renderer::init ( const QString &shaderDir ) { m_cache.init ( shaderDir ); }
+  void Renderer::init ()
+  {
+    m_grid.init ();
+    m_cache.init ();
+  }
 
   void Renderer::render ( const Cad::Document &document, const Core::Camera &camera,
                           Core::Font &font )
   {
+    glEnable ( GL_BLEND );
+    glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    // glEnable ( GL_MULTISAMPLE );
+
+    glViewport ( 0, 0, camera.width (), camera.height () );
+    glClearColor ( 0.09f, 0.10f, 0.12f, 1.0f );
+    glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+    m_grid.render ( camera );
+
     m_cache.sync ( document, font );
+
+    glEnable ( GL_DEPTH_TEST );
     m_cache.draw ( camera, font );
+    glDisable ( GL_DEPTH_TEST );
   }
 } // namespace Qadra::Render

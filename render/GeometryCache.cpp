@@ -1,10 +1,9 @@
 #include "GeometryCache.hpp"
 
 #include "Document.hpp"
-#include <random>
 
 #include <QFile>
-#include <QTextStream>
+#include <random>
 
 namespace
 {
@@ -59,18 +58,10 @@ namespace
 
 namespace Qadra::Render
 {
-  void GeometryCache::init ( const QString &shaderDir )
+  void GeometryCache::init ()
   {
-    auto load = [&] ( const QString &filename )
-    {
-      QFile file ( shaderDir + "/" + filename );
-      if ( ! file.open ( QIODevice::ReadOnly | QIODevice::Text ) )
-        throw std::runtime_error ( "Failed to open shader: " + filename.toStdString () );
-      return QTextStream ( &file ).readAll ();
-    };
-
-    m_linePass.init ( load ( "line.vertex.glsl" ), load ( "line.fragment.glsl" ) );
-    m_textPass.init ( load ( "text.vertex.glsl" ), load ( "text.fragment.glsl" ) );
+    m_linePass.init ();
+    m_textPass.init ();
   }
 
   void GeometryCache::sync ( const Cad::Document &document, Core::Font &font )
@@ -155,8 +146,8 @@ namespace Qadra::Render
                                       chunk.textVertices.end () );
       }
 
-      m_linePass.upload ( m_mergedLineVertices );
-      m_textPass.upload ( m_mergedTextVertices );
+      m_linePass.upload ( std::span<const LinePass::Vertex> ( m_mergedLineVertices ) );
+      m_textPass.upload ( std::span<const TextPass::Vertex> ( m_mergedTextVertices ) );
       m_needsUpload = false;
     }
 

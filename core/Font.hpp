@@ -6,7 +6,7 @@
 #include "GlyphData.hpp"
 #include "ShapedGlyph.hpp"
 #include "TextShaper.hpp"
-#include "Texture.hpp"
+#include "gl/Texture.hpp"
 
 namespace Qadra::Core
 {

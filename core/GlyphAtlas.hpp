@@ -3,7 +3,7 @@
 
 #include "FontEngine.hpp"
 #include "GlyphData.hpp"
-#include "Texture.hpp"
+#include "gl/Texture.hpp"
 
 #include <msdf-atlas-gen/msdf-atlas-gen.h>
 #include <msdfgen/msdfgen-ext.h>

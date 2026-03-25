@@ -1,14 +1,13 @@
 #ifndef QADRA_RENDER_GRIDPASS_HPP
 #define QADRA_RENDER_GRIDPASS_HPP
 
-#include "Buffer.hpp"
 #include "Camera.hpp"
-#include "Program.hpp"
-#include "VertexArray.hpp"
+#include "gl/Program.hpp"
+#include "RenderPass.hpp"
 
 namespace Qadra::Render
 {
-  class GridPass
+  class GridPass : public RenderPass
   {
   public:
     struct Segment
@@ -20,16 +19,15 @@ namespace Qadra::Render
       float antiAliasWidthPixels = 1.0f;
     };
 
-    GridPass () = default;
+    GridPass ();
 
-    void init ( const QString &vertexSource, const QString &fragmentSource );
+    void render ( const Core::Camera &camera );
 
-    void render ( const Core::Camera &camera, const glm::vec2 &viewportSizePixels ) const;
+  protected:
+    void setupAttributes () override;
 
   private:
-    GL::Buffer m_vbo;
-    GL::VertexArray m_vao;
-    GL::Program m_program;
+    static std::vector<Segment> buildSegments ( const Core::Camera &camera );
   };
 } // namespace Qadra::Render
 

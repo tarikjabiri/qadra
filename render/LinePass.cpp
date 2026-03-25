@@ -4,17 +4,18 @@
 
 namespace Qadra::Render
 {
-  void LinePass::init ( const QString &vertexSource, const QString &fragmentSource )
+  LinePass::LinePass () : RenderPass ( "line" ) { }
+
+  void LinePass::render ( const Core::Camera &camera ) const
   {
-    GL::Shader vertexShader ( GL::Shader::Type::Vertex );
-    GL::Shader fragmentShader ( GL::Shader::Type::Fragment );
+    if ( ! beginRender ( camera ) ) return;
 
-    if ( ! vertexShader.compile ( vertexSource ) || ! fragmentShader.compile ( fragmentSource ) )
-      throw std::runtime_error ( "LinePass: shader compilation failed" );
+    glLineWidth ( 1.0f );
+    glDrawArrays ( GL_LINES, 0, static_cast<GLsizei> ( m_vertexCount ) );
+  }
 
-    if ( ! m_program.link ( vertexShader, fragmentShader ) )
-      throw std::runtime_error ( "LinePass: program linking failed" );
-
+  void LinePass::setupAttributes ()
+  {
     m_vao.attribute ( { .index = 0,
                         .size = 2,
                         .type = GL_DOUBLE,
@@ -23,32 +24,5 @@ namespace Qadra::Render
         { .index = 1, .size = 4, .type = GL_FLOAT, .relativeOffset = offsetof ( Vertex, color ) } );
     m_vao.attribute (
         { .index = 2, .size = 1, .type = GL_FLOAT, .relativeOffset = offsetof ( Vertex, depth ) } );
-  }
-
-  void LinePass::upload ( const std::span<const Vertex> vertices )
-  {
-    if ( vertices.empty () )
-    {
-      m_vertexCount = 0;
-      m_bufferDirty = false;
-      return;
-    }
-
-    m_vbo.allocate ( vertices, GL::Buffer::Usage::StaticDraw );
-    m_vao.attachVertexBuffer ( 0, m_vbo, 0, sizeof ( Vertex ) );
-    m_vertexCount = vertices.size ();
-    m_bufferDirty = false;
-  }
-
-  void LinePass::render ( const Core::Camera &camera ) const
-  {
-    if ( m_vertexCount == 0 ) return;
-
-    m_vao.bind ();
-    m_program.bind ();
-    m_program.uniform ( "u_viewProjection", camera.viewProjection () );
-
-    glLineWidth ( 1.0f );
-    glDrawArrays ( GL_LINES, 0, static_cast<GLsizei> ( m_vertexCount ) );
   }
 } // namespace Qadra::Render

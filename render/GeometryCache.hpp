@@ -17,7 +17,7 @@ namespace Qadra::Render
   public:
     GeometryCache () = default;
 
-    void init ( const QString &shaderDir );
+    void init ();
     void sync ( const Cad::Document &document, Core::Font &font );
     void draw ( const Core::Camera &camera, const Core::Font &font );
 

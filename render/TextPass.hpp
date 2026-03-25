@@ -1,18 +1,15 @@
 #ifndef QADRA_TEXT_PASS_HPP
 #define QADRA_TEXT_PASS_HPP
 
-#include "Buffer.hpp"
 #include "Camera.hpp"
-#include "Program.hpp"
-#include "Texture.hpp"
-#include "VertexArray.hpp"
+#include "RenderPass.hpp"
+#include "gl/Texture.hpp"
 
 #include <glm/glm.hpp>
-#include <span>
 
 namespace Qadra::Render
 {
-  class TextPass
+  class TextPass : public RenderPass
   {
   public:
     struct Vertex
@@ -23,20 +20,13 @@ namespace Qadra::Render
       float depth;
     };
 
-    TextPass () = default;
-
-    void init ( const QString &vertexSource, const QString &fragmentSource );
-
-    void upload ( std::span<const Vertex> vertices );
+    TextPass ();
 
     void render ( const Core::Camera &camera, const GL::Texture &atlas,
                   double distanceFieldRange ) const;
 
-  private:
-    GL::Buffer m_vbo;
-    GL::VertexArray m_vao;
-    GL::Program m_program;
-    std::size_t m_vertexCount = 0;
+  protected:
+    void setupAttributes () override;
   };
 } // namespace Qadra::Render
 
