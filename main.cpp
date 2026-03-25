@@ -13,6 +13,8 @@
 
 int main ( int argc, char *argv[] )
 {
+  QGuiApplication::setHighDpiScaleFactorRoundingPolicy (
+      Qt::HighDpiScaleFactorRoundingPolicy::RoundPreferFloor );
   QApplication app ( argc, argv );
   app.setApplicationVersion ( "1.0.0" );
   app.setApplicationName ( "Qadra" );
