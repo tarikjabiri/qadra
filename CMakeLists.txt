@@ -14,6 +14,8 @@ set(OpenCASCADE_DIR "D:/3rd-party/opencascade-7.9.3-vc14-64/cmake")
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGLWidgets Svg SvgWidgets)
 find_package(OpenCASCADE REQUIRED CONFIG)
 
+qt_standard_project_setup()
+
 set(QADRA_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/cad
@@ -34,8 +36,6 @@ add_subdirectory(spatial)
 add_subdirectory(cad)
 add_subdirectory(render)
 add_subdirectory(ui)
-
-qt_standard_project_setup()
 
 set(app_icon_resource_windows "")
 if(WIN32)
