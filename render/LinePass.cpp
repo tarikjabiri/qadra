@@ -48,6 +48,7 @@ namespace Qadra::Render
     m_program.bind ();
     m_program.uniform ( "u_viewProjection", camera.viewProjection () );
 
+    glLineWidth ( 1.0f );
     glDrawArrays ( GL_LINES, 0, static_cast<GLsizei> ( m_vertexCount ) );
   }
 } // namespace Qadra::Render

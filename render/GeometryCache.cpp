@@ -87,7 +87,7 @@ namespace Qadra::Render
 
     for ( std::size_t c = firstDirtyChunk; c < totalChunks; ++c ) m_chunks[c].dirty = true;
 
-    const float maxDepth = static_cast<float> ( order.size () );
+    const float maxDepth = static_cast<float> ( order.size () + 1 );
 
     for ( std::size_t c = firstDirtyChunk; c < totalChunks; ++c )
     {
@@ -105,7 +105,9 @@ namespace Qadra::Render
         const auto *entity = document.find ( order[i] );
         if ( ! entity ) continue;
 
-        const float depth = static_cast<float> ( i ) / maxDepth;
+        // Later entities should appear on top. With the default depth test,
+        // smaller depth values are closer, so invert the draw-order mapping.
+        const float depth = 1.0f - static_cast<float> ( i + 1 ) / maxDepth;
         std::random_device rd;
         std::mt19937 gen ( rd () );
         std::uniform_real_distribution<float> dist ( 0.0f, 1.0f );

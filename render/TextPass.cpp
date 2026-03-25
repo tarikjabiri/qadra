@@ -53,6 +53,12 @@ namespace Qadra::Render
     atlas.bind ( 0 );
     m_program.uniform ( "u_texture", 0 );
 
+    // Keep depth testing against previously rendered geometry, but do not let
+    // alpha-blended glyph edges punch holes into later overlapping glyphs.
+    GLboolean depthMask = GL_TRUE;
+    glGetBooleanv ( GL_DEPTH_WRITEMASK, &depthMask );
+    glDepthMask ( GL_FALSE );
     glDrawArrays ( GL_TRIANGLES, 0, static_cast<GLsizei> ( m_vertexCount ) );
+    glDepthMask ( depthMask );
   }
 } // namespace Qadra::Render
