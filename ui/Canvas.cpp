@@ -20,8 +20,8 @@ namespace Qadra::Ui
     format.setDepthBufferSize ( 24 );
     setFormat ( format );
 
-    // setFocusPolicy ( Qt::StrongFocus );
-    // setMouseTracking ( true );
+    setFocusPolicy ( Qt::StrongFocus );
+    setMouseTracking ( true );
   }
 
   void Canvas::initializeGL ()
