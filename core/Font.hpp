@@ -5,6 +5,7 @@
 #include "GlyphAtlas.hpp"
 #include "GlyphData.hpp"
 #include "ShapedGlyph.hpp"
+#include "TextLayout.hpp"
 #include "TextShaper.hpp"
 #include "gl/Texture.hpp"
 
@@ -16,6 +17,8 @@ namespace Qadra::Core
     Font ( FontEngine &engine, const QString &path, int size = 1024 );
 
     QList<ShapedGlyph> shape ( const QString &text ) const { return m_shaper.shape ( text ); }
+
+    TextLayout layout ( const QString &text ) const;
 
     const GlyphData &glyph ( const std::uint32_t glyphId ) { return m_atlas.glyph ( glyphId ); }
 

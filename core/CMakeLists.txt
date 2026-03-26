@@ -13,6 +13,7 @@ add_library(qadra_core STATIC
   Handle.cpp
   Handle.hpp
   ShapedGlyph.hpp
+  TextLayout.hpp
   TextShaper.cpp
   TextShaper.hpp
 )

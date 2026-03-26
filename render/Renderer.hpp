@@ -3,8 +3,8 @@
 
 #include "Camera.hpp"
 #include "Document.hpp"
-#include "GeometryCache.hpp"
 #include "GridPass.hpp"
+#include "RenderScene.hpp"
 
 namespace Qadra::Render
 {
@@ -15,8 +15,8 @@ namespace Qadra::Render
     void render ( const Cad::Document &document, const Core::Camera &camera, Core::Font &font );
 
   private:
-    GeometryCache m_cache;
     GridPass m_grid;
+    RenderScene m_scene;
   };
 } // namespace Qadra::Render
 

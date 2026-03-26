@@ -3,9 +3,11 @@
 
 #include "BoxAabb.hpp"
 #include "Entity.hpp"
+#include "TextLayout.hpp"
 #include "glm/glm.hpp"
 
 #include <QString>
+#include <cstdint>
 
 namespace Qadra::Entity
 {
@@ -20,7 +22,8 @@ namespace Qadra::Entity
   class Text : public Entity
   {
   public:
-    Text ( Core::Handle handle, const TextRecord &record, const Math::BoxAABB &bbox );
+    Text ( Core::Handle handle, std::uint32_t renderKey, const TextRecord &record,
+           const Core::TextLayout &layout, const Math::BoxAABB &bbox );
 
     const glm::dvec2 &position () const { return m_position; }
 
@@ -30,6 +33,8 @@ namespace Qadra::Entity
 
     double rotation () const { return m_rotation; }
 
+    const Core::TextLayout &layout () const { return m_layout; }
+
     Math::BoxAABB bbox () const override;
 
   private:
@@ -37,6 +42,7 @@ namespace Qadra::Entity
     QString m_text;
     double m_height;
     double m_rotation;
+    Core::TextLayout m_layout;
     Math::BoxAABB m_bbox;
   };
 } // namespace Qadra::Entity

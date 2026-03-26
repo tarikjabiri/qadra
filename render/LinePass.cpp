@@ -6,12 +6,20 @@ namespace Qadra::Render
 {
   LinePass::LinePass () : RenderPass ( "line" ) { }
 
-  void LinePass::render ( const Core::Camera &camera ) const
+  void LinePass::renderRanges ( const Core::Camera &camera, const GL::Buffer &buffer,
+                                const std::span<const GLint> firsts,
+                                const std::span<const GLsizei> counts,
+                                const float renderKeyScale ) const
   {
-    if ( ! beginRender ( camera ) ) return;
+    if ( firsts.empty () || firsts.size () != counts.size () ) return;
+    if ( ! beginRender ( camera, 1 ) ) return;
+
+    m_vao.attachVertexBuffer ( 0, buffer, 0, sizeof ( Vertex ) );
+    m_program.uniform ( "u_renderKeyScale", renderKeyScale );
 
     glLineWidth ( 1.0f );
-    glDrawArrays ( GL_LINES, 0, static_cast<GLsizei> ( m_vertexCount ) );
+    glMultiDrawArrays ( GL_LINES, firsts.data (), counts.data (),
+                        static_cast<GLsizei> ( firsts.size () ) );
   }
 
   void LinePass::setupAttributes ()
@@ -22,7 +30,10 @@ namespace Qadra::Render
                         .relativeOffset = offsetof ( Vertex, position ) } );
     m_vao.attribute (
         { .index = 1, .size = 4, .type = GL_FLOAT, .relativeOffset = offsetof ( Vertex, color ) } );
-    m_vao.attribute (
-        { .index = 2, .size = 1, .type = GL_FLOAT, .relativeOffset = offsetof ( Vertex, depth ) } );
+    m_vao.attribute ( { .index = 2,
+                        .size = 1,
+                        .type = GL_UNSIGNED_INT,
+                        .relativeOffset = offsetof ( Vertex, renderKey ),
+                        .integer = true } );
   }
 } // namespace Qadra::Render

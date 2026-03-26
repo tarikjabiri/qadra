@@ -5,7 +5,7 @@ namespace Qadra::Render
   void Renderer::init ()
   {
     m_grid.init ();
-    m_cache.init ();
+    m_scene.init ();
   }
 
   void Renderer::render ( const Cad::Document &document, const Core::Camera &camera,
@@ -21,10 +21,10 @@ namespace Qadra::Render
 
     m_grid.render ( camera );
 
-    m_cache.sync ( document, font );
+    m_scene.sync ( document, font );
 
     glEnable ( GL_DEPTH_TEST );
-    m_cache.draw ( camera, font );
+    m_scene.draw ( camera, font );
     glDisable ( GL_DEPTH_TEST );
   }
 } // namespace Qadra::Render

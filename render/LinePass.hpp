@@ -3,8 +3,11 @@
 
 #include "Camera.hpp"
 #include "RenderPass.hpp"
+#include "gl/Buffer.hpp"
 
+#include <cstdint>
 #include <glm/glm.hpp>
+#include <span>
 
 namespace Qadra::Render
 {
@@ -15,12 +18,14 @@ namespace Qadra::Render
     {
       glm::dvec2 position;
       glm::vec4 color;
-      float depth;
+      std::uint32_t renderKey;
     };
 
     LinePass ();
 
-    void render ( const Core::Camera &camera ) const;
+    void renderRanges ( const Core::Camera &camera, const GL::Buffer &buffer,
+                        std::span<const GLint> firsts, std::span<const GLsizei> counts,
+                        float renderKeyScale ) const;
 
   protected:
     void setupAttributes () override;

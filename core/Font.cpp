@@ -11,4 +11,14 @@ namespace Qadra::Core
     m_ascender = face->ascender > 0 ? face->ascender : m_shaper.unitsPerEm ();
     m_descender = face->descender < 0 ? face->descender : 0.0;
   }
+
+  TextLayout Font::layout ( const QString &text ) const
+  {
+    TextLayout layout;
+    layout.glyphs = m_shaper.shape ( text );
+
+    for ( const auto &glyph : layout.glyphs ) layout.advanceWidth += glyph.advance.x;
+
+    return layout;
+  }
 } // namespace Qadra::Core

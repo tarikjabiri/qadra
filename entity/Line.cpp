@@ -2,8 +2,9 @@
 
 namespace Qadra::Entity
 {
-  Line::Line ( const Core::Handle handle, const LineRecord &record )
-      : Entity ( handle, EntityType::Line ), m_start ( record.start ), m_end ( record.end )
+  Line::Line ( const Core::Handle handle, const std::uint32_t renderKey, const LineRecord &record )
+      : Entity ( handle, EntityType::Line, renderKey ), m_start ( record.start ),
+        m_end ( record.end )
   {
   }
 

@@ -31,6 +31,7 @@ namespace Qadra::Render
     void bind () const;
 
     bool beginRender ( const Core::Camera &camera ) const;
+    bool beginRender ( const Core::Camera &camera, std::size_t vertexCount ) const;
 
     GL::Buffer m_vbo;
     GL::VertexArray m_vao;

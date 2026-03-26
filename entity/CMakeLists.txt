@@ -14,6 +14,7 @@ target_include_directories(qadra_entity PUBLIC
 
 target_link_libraries(qadra_entity PUBLIC
   Qt6::Core
+  qadra_core
   qadra_math
   glm
 )

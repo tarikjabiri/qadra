@@ -17,6 +17,7 @@ namespace Qadra::GL
       GLenum type{};
       GLuint relativeOffset{};
       GLboolean normalized = GL_FALSE;
+      bool integer = false;
       GLuint bindingIndex = 0;
     };
 

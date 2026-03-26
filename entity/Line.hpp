@@ -3,6 +3,8 @@
 
 #include "Entity.hpp"
 
+#include <cstdint>
+
 namespace Qadra::Entity
 {
   struct LineRecord
@@ -14,7 +16,7 @@ namespace Qadra::Entity
   class Line : public Entity
   {
   public:
-    Line ( Core::Handle handle, const LineRecord &record );
+    Line ( Core::Handle handle, std::uint32_t renderKey, const LineRecord &record );
 
     const glm::dvec2 &start () const { return m_start; }
 

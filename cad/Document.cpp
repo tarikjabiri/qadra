@@ -5,12 +5,13 @@ namespace Qadra::Cad
   Core::Handle Document::addLine ( const Entity::LineRecord &record )
   {
     auto handle = next ();
-    auto entity = std::make_unique<Entity::Line> ( handle, record );
+    auto entity = std::make_unique<Entity::Line> ( handle, ++m_renderKeySeed, record );
     m_spatialIndex.insert ( handle, entity->bbox () );
     m_entities.emplace ( handle, std::move ( entity ) );
     m_dirtyFrom = std::min ( m_dirtyFrom, static_cast<std::size_t> ( m_drawOrder.size () ) );
     m_drawOrder.append ( handle );
     ++m_version;
+    recordChange ( DocumentChange::Kind::Added, handle );
     return handle;
   }
 
@@ -18,14 +19,17 @@ namespace Qadra::Cad
   {
     auto handle = next ();
 
-    const auto bbox = computeTextBBox ( record, font );
-    auto entity = std::make_unique<Entity::Text> ( handle, record, bbox );
+    const auto layout = font.layout ( record.text );
+    const auto bbox = computeTextBBox ( record, layout, font );
+    auto entity =
+        std::make_unique<Entity::Text> ( handle, ++m_renderKeySeed, record, layout, bbox );
 
     m_spatialIndex.insert ( handle, entity->bbox () );
     m_entities.emplace ( handle, std::move ( entity ) );
     m_dirtyFrom = std::min ( m_dirtyFrom, static_cast<std::size_t> ( m_drawOrder.size () ) );
     m_drawOrder.append ( handle );
     ++m_version;
+    recordChange ( DocumentChange::Kind::Added, handle );
 
     return handle;
   }
@@ -45,19 +49,24 @@ namespace Qadra::Cad
     m_entities.erase ( handle );
     m_drawOrder.removeOne ( handle );
     ++m_version;
+    recordChange ( DocumentChange::Kind::Removed, handle );
+  }
+
+  std::vector<DocumentChange> Document::drainChanges () const
+  {
+    auto changes = std::move ( m_pendingChanges );
+    m_pendingChanges.clear ();
+    return changes;
   }
 
   void Document::resetDirty () const { m_dirtyFrom = m_drawOrder.size (); }
 
-  Math::BoxAABB Document::computeTextBBox ( const Entity::TextRecord &record, Core::Font &font )
+  Math::BoxAABB Document::computeTextBBox ( const Entity::TextRecord &record,
+                                            const Core::TextLayout &layout, Core::Font &font )
   {
-    const auto shaped = font.shape ( record.text );
     const double scale = record.height / font.unitsPerEm ();
 
-    double totalAdvance = 0.0;
-    for ( const auto &glyph : shaped ) totalAdvance += glyph.advance.x;
-
-    const double width = totalAdvance * scale;
+    const double width = layout.advanceWidth * scale;
     const double ascender = font.ascender () * scale;
     const double descender = font.descender () * scale;
 
@@ -85,5 +94,10 @@ namespace Qadra::Cad
     box.expand ( rotate ( glm::dvec2 ( localMin.x, localMax.y ) ) );
     box.expand ( rotate ( localMax ) );
     return box;
+  }
+
+  void Document::recordChange ( const DocumentChange::Kind kind, const Core::Handle handle ) const
+  {
+    m_pendingChanges.push_back ( { .kind = kind, .handle = handle } );
   }
 } // namespace Qadra::Cad

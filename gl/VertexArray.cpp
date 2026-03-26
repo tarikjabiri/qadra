@@ -35,6 +35,11 @@ namespace Qadra::GL
       glVertexArrayAttribLFormat ( m_handle, attr.index, attr.size, attr.type,
                                    attr.relativeOffset );
     }
+    else if ( attr.integer )
+    {
+      glVertexArrayAttribIFormat ( m_handle, attr.index, attr.size, attr.type,
+                                   attr.relativeOffset );
+    }
     else
     {
       glVertexArrayAttribFormat ( m_handle, attr.index, attr.size, attr.type, attr.normalized,

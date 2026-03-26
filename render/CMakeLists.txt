@@ -1,16 +1,19 @@
 add_library(qadra_render STATIC
-  GeometryCache.cpp
-  GeometryCache.hpp
   GridPass.cpp
   GridPass.hpp
   LinePass.cpp
   LinePass.hpp
+  RenderScene.cpp
+  RenderScene.hpp
   RenderPass.cpp
   RenderPass.hpp
   Renderer.cpp
   Renderer.hpp
   TextPass.cpp
   TextPass.hpp
+  VertexBatch.hpp
+  VisibleDrawList.cpp
+  VisibleDrawList.hpp
 )
 
 target_include_directories(qadra_render PUBLIC

@@ -40,7 +40,12 @@ namespace Qadra::Render
 
   bool RenderPass::beginRender ( const Core::Camera &camera ) const
   {
-    if ( m_vertexCount == 0 ) return false;
+    return beginRender ( camera, m_vertexCount );
+  }
+
+  bool RenderPass::beginRender ( const Core::Camera &camera, const std::size_t vertexCount ) const
+  {
+    if ( vertexCount == 0 ) return false;
 
     bind ();
     m_program.uniform ( "u_viewProjection", camera.viewProjection () );

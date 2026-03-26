@@ -1,4 +1,5 @@
 add_library(qadra_cad STATIC
+  DocumentChange.hpp
   Document.cpp
   Document.hpp
 )
