@@ -1,6 +1,8 @@
 #ifndef QADRA_UI_WINDOW_HPP
 #define QADRA_UI_WINDOW_HPP
 
+#include "ToolKind.hpp"
+
 #include <QMainWindow>
 
 namespace Qadra::Ui
@@ -20,6 +22,8 @@ public:
   ~Window () override;
 
 private:
+  void selectTool ( Qadra::Tool::ToolKind kind );
+
   Qadra::Ui::Canvas *m_canvas{};
   Qadra::Ui::CmdLine *m_cmdLine{};
   Qadra::Ui::DrawToolBar *m_drawToolBar{};

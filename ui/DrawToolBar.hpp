@@ -1,9 +1,12 @@
 #ifndef QADRA_UI_DRAW_TOOL_BAR_HPP
 #define QADRA_UI_DRAW_TOOL_BAR_HPP
 
+#include "ToolKind.hpp"
+
 #include <QToolBar>
 
 class QAction;
+class QActionGroup;
 
 namespace Qadra::Ui
 {
@@ -16,7 +19,13 @@ namespace Qadra::Ui
 
     ~DrawToolBar () override;
 
+    [[nodiscard]] Qadra::Tool::ToolKind selectedToolKind () const noexcept;
+
+  signals:
+    void toolSelected ( Qadra::Tool::ToolKind kind );
+
   private:
+    QActionGroup *m_actionGroup{};
     QAction *m_lineAction{};
     QAction *m_arcAction{};
     QAction *m_textAction{};

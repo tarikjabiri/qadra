@@ -19,5 +19,6 @@ target_link_libraries(qadra_ui PUBLIC
   qadra_cad
   qadra_core
   qadra_render
+  qadra_tool
   glad
 )

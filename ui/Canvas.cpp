@@ -1,12 +1,60 @@
 #include "Canvas.hpp"
 
+#include "LineTool.hpp"
+#include "Tool.hpp"
+
 #include <QCursor>
 #include <QFile>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QOpenGLContext>
 #include <QSurfaceFormat>
 #include <QWheelEvent>
 #include <glad/gl.h>
+#include <memory>
+
+namespace
+{
+  [[nodiscard]] Qadra::Tool::ToolPointerButton toToolPointerButton ( const Qt::MouseButton button )
+  {
+    switch ( button )
+    {
+      case Qt::LeftButton:
+        return Qadra::Tool::ToolPointerButton::Left;
+      case Qt::MiddleButton:
+        return Qadra::Tool::ToolPointerButton::Middle;
+      case Qt::RightButton:
+        return Qadra::Tool::ToolPointerButton::Right;
+      default:
+        return Qadra::Tool::ToolPointerButton::None;
+    }
+  }
+
+  [[nodiscard]] Qadra::Tool::ToolModifiers
+  toToolModifiers ( const Qt::KeyboardModifiers modifiers ) noexcept
+  {
+    Qadra::Tool::ToolModifiers toolModifiers;
+    toolModifiers.shift = modifiers.testFlag ( Qt::ShiftModifier );
+    toolModifiers.control = modifiers.testFlag ( Qt::ControlModifier );
+    toolModifiers.alt = modifiers.testFlag ( Qt::AltModifier );
+    return toolModifiers;
+  }
+
+  [[nodiscard]] std::unique_ptr<Qadra::Tool::Tool> createTool ( const Qadra::Tool::ToolKind kind )
+  {
+    switch ( kind )
+    {
+      case Qadra::Tool::ToolKind::Line:
+        return std::make_unique<Qadra::Tool::LineTool> ();
+      case Qadra::Tool::ToolKind::None:
+      case Qadra::Tool::ToolKind::Arc:
+      case Qadra::Tool::ToolKind::Text:
+        return nullptr;
+    }
+
+    return nullptr;
+  }
+} // namespace
 
 namespace Qadra::Ui
 {
@@ -22,6 +70,18 @@ namespace Qadra::Ui
 
     setFocusPolicy ( Qt::StrongFocus );
     setMouseTracking ( true );
+  }
+
+  void Canvas::setActiveTool ( const Tool::ToolKind kind )
+  {
+    if ( kind == m_toolManager.activeToolKind () ) return;
+
+    const Tool::ToolContext context = makeToolContext ();
+    const Tool::ToolEventResult result =
+        kind == Tool::ToolKind::None ? m_toolManager.clearActiveTool ( context )
+                                     : m_toolManager.setActiveTool ( createTool ( kind ), context );
+
+    applyToolEventResult ( result );
   }
 
   void Canvas::initializeGL ()
@@ -42,9 +102,9 @@ namespace Qadra::Ui
     m_initialized = true;
 
     m_document.addLine ( { { -100.0, -100.0 }, { 100.0, 100.0 } } );
-    for ( size_t i = 0; i < 40; i++ )
+    for ( size_t i = 0; i < 700; i++ )
     {
-      for ( size_t j = 0; j < 200; j++ )
+      for ( size_t j = 0; j < 800; j++ )
       {
         m_document.addText (
             { { i * 1650, j * 120 }, "Hello Qadra, Developed using OpenGL/Qt", 50.0 }, *m_font );
@@ -70,6 +130,29 @@ namespace Qadra::Ui
       return context->getProcAddress ( procName );
     }
     return nullptr;
+  }
+
+  Tool::ToolContext Canvas::makeToolContext ()
+  {
+    return Tool::ToolContext{ m_document, m_camera, m_font ? &*m_font : nullptr };
+  }
+
+  void Canvas::applyToolEventResult ( const Tool::ToolEventResult &result )
+  {
+    if ( result.requestRepaint ) update ();
+  }
+
+  Tool::ToolPointerEvent Canvas::makeToolPointerEvent ( const QMouseEvent &event )
+  {
+    updateCameraViewport ();
+
+    const glm::dvec2 screenPosition = m_camera.devicePixels ( event.position () );
+    Tool::ToolPointerEvent toolEvent;
+    toolEvent.screenPosition = screenPosition;
+    toolEvent.worldPosition = m_camera.screenToWorld ( screenPosition );
+    toolEvent.button = toToolPointerButton ( event.button () );
+    toolEvent.modifiers = toToolModifiers ( event.modifiers () );
+    return toolEvent;
   }
 
   void Canvas::updateCameraViewport ()
@@ -101,6 +184,17 @@ namespace Qadra::Ui
       return;
     }
 
+    const Tool::ToolEventResult result =
+        m_toolManager.handlePointerPress ( makeToolContext (), makeToolPointerEvent ( *event ) );
+
+    applyToolEventResult ( result );
+
+    if ( result.handled )
+    {
+      event->accept ();
+      return;
+    }
+
     QOpenGLWidget::mousePressEvent ( event );
   }
 
@@ -110,6 +204,17 @@ namespace Qadra::Ui
     {
       m_cameraController.mouseRelease ( event->button () );
       unsetCursor ();
+      event->accept ();
+      return;
+    }
+
+    const Tool::ToolEventResult result =
+        m_toolManager.handlePointerRelease ( makeToolContext (), makeToolPointerEvent ( *event ) );
+
+    applyToolEventResult ( result );
+
+    if ( result.handled )
+    {
       event->accept ();
       return;
     }
@@ -125,6 +230,17 @@ namespace Qadra::Ui
     if ( m_cameraController.isPanning () )
     {
       update ();
+      event->accept ();
+      return;
+    }
+
+    const Tool::ToolEventResult result =
+        m_toolManager.handlePointerMove ( makeToolContext (), makeToolPointerEvent ( *event ) );
+
+    applyToolEventResult ( result );
+
+    if ( result.handled )
+    {
       event->accept ();
       return;
     }

@@ -4,6 +4,9 @@
 #include "CameraController.hpp"
 #include "Document.hpp"
 #include "Renderer.hpp"
+#include "ToolContext.hpp"
+#include "ToolKind.hpp"
+#include "ToolManager.hpp"
 
 #include <QOpenGLWidget>
 #include <QString>
@@ -20,6 +23,8 @@ namespace Qadra::Ui
 
   public:
     explicit Canvas ( QWidget *parent = nullptr );
+
+    void setActiveTool ( Qadra::Tool::ToolKind kind );
 
   protected:
     void initializeGL () override;
@@ -39,6 +44,12 @@ namespace Qadra::Ui
   private:
     static QFunctionPointer getProcAddress ( const char *procName );
 
+    [[nodiscard]] Qadra::Tool::ToolContext makeToolContext ();
+
+    void applyToolEventResult ( const Qadra::Tool::ToolEventResult &result );
+
+    [[nodiscard]] Qadra::Tool::ToolPointerEvent makeToolPointerEvent ( const QMouseEvent &event );
+
     void updateCameraViewport ();
 
     bool m_initialized = false;
@@ -48,6 +59,7 @@ namespace Qadra::Ui
     Core::CameraController m_cameraController{ m_camera };
 
     Cad::Document m_document;
+    Qadra::Tool::ToolManager m_toolManager;
     std::optional<Render::Renderer> m_renderer;
 
     Core::FontEngine m_fontEngine;

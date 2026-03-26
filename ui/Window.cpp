@@ -19,6 +19,9 @@ Window::Window ( QWidget *parent ) : QMainWindow ( parent )
   m_canvas = new Qadra::Ui::Canvas ( this );
   setCentralWidget ( m_canvas );
 
+  connect ( m_drawToolBar, &Qadra::Ui::DrawToolBar::toolSelected, this, &Window::selectTool );
+  selectTool ( m_drawToolBar->selectedToolKind () );
+
   m_cmdLine = new Qadra::Ui::CmdLine ( this );
   addDockWidget ( Qt::BottomDockWidgetArea, m_cmdLine );
 
@@ -28,3 +31,5 @@ Window::Window ( QWidget *parent ) : QMainWindow ( parent )
 }
 
 Window::~Window () = default;
+
+void Window::selectTool ( const Qadra::Tool::ToolKind kind ) { m_canvas->setActiveTool ( kind ); }
