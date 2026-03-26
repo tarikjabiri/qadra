@@ -7,6 +7,7 @@ namespace Qadra::Ui
 {
   class Canvas;
   class CmdLine;
+  class DrawToolBar;
 } // namespace Qadra::Ui
 
 class Window : public QMainWindow
@@ -21,6 +22,7 @@ public:
 private:
   Qadra::Ui::Canvas *m_canvas{};
   Qadra::Ui::CmdLine *m_cmdLine{};
+  Qadra::Ui::DrawToolBar *m_drawToolBar{};
 };
 
 #endif // QADRA_UI_WINDOW_HPP

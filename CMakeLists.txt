@@ -59,6 +59,15 @@ qt_add_resources(qadra "app_assets"
         qadra-splash-light.svg
 )
 
+qt_add_resources(qadra "app_draw_assets"
+        PREFIX "/assets"
+        BASE "${CMAKE_SOURCE_DIR}/assets"
+        FILES
+        assets/draw-arc.svg
+        assets/draw-line.svg
+        assets/draw-text.svg
+)
+
 target_include_directories(qadra PRIVATE
   ${QADRA_INCLUDE_DIRS}
 )

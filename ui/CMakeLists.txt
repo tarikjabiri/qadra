@@ -3,6 +3,8 @@ qt_add_library(qadra_ui STATIC
   Canvas.hpp
   CmdLine.cpp
   CmdLine.hpp
+  DrawToolBar.cpp
+  DrawToolBar.hpp
   Window.cpp
   Window.hpp
 )
