@@ -3,6 +3,7 @@
 #include "ArcInstanceBuilder.hpp"
 #include "CircleInstanceBuilder.hpp"
 #include "EllipseInstanceBuilder.hpp"
+#include "LWPolylineGeometryBuilder.hpp"
 
 #include <algorithm>
 #include <array>
@@ -360,6 +361,19 @@ namespace Qadra::Render
       {
         const auto &arc = static_cast<const Entity::Arc &> ( entity );
         geometry.arcInstances.push_back ( buildArcInstance ( arc.curve (), color, renderKey ) );
+        break;
+      }
+      case Entity::EntityType::LWPolyline:
+      {
+        const auto &lwPolyline = static_cast<const Entity::LWPolyline &> ( entity );
+        const LWPolylineGeometry polylineGeometry =
+            buildLWPolylineGeometry ( lwPolyline, color, renderKey );
+        geometry.arcInstances.insert ( geometry.arcInstances.end (),
+                                       polylineGeometry.arcInstances.begin (),
+                                       polylineGeometry.arcInstances.end () );
+        geometry.lineVertices.insert ( geometry.lineVertices.end (),
+                                       polylineGeometry.lineVertices.begin (),
+                                       polylineGeometry.lineVertices.end () );
         break;
       }
       case Entity::EntityType::Circle:

@@ -1,6 +1,8 @@
 add_library(qadra_math STATIC
   Arc.cpp
   Arc.hpp
+  Bulge.cpp
+  Bulge.hpp
   BoxAABB.cpp
   BoxAABB.hpp
   BoxOBB.cpp

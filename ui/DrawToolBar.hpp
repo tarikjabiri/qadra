@@ -29,6 +29,7 @@ namespace Qadra::Ui
   private:
     QActionGroup *m_actionGroup{};
     QAction *m_lineAction{};
+    QAction *m_polylineAction{};
     QAction *m_arcAction{};
     QAction *m_circleAction{};
     QAction *m_ellipseAction{};

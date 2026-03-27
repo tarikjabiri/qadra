@@ -8,6 +8,7 @@
 #include "Entity.hpp"
 #include "Font.hpp"
 #include "Handle.hpp"
+#include "LWPolyline.hpp"
 #include "Line.hpp"
 #include "SpatialIndex.hpp"
 #include "Text.hpp"
@@ -32,6 +33,8 @@ namespace Qadra::Cad
     Core::Handle addCircle ( const Entity::CircleRecord &record );
 
     Core::Handle addEllipse ( const Entity::EllipseRecord &record );
+
+    Core::Handle addLWPolyline ( const Entity::LWPolylineRecord &record );
 
     Core::Handle addText ( const Entity::TextRecord &record, Core::Font &font );
 

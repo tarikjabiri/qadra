@@ -4,6 +4,7 @@
 #include "circle/Command.hpp"
 #include "ellipse/Command.hpp"
 #include "line/Command.hpp"
+#include "polyline/Command.hpp"
 
 #include <cctype>
 #include <string>
@@ -44,6 +45,8 @@ namespace Qadra::Command
         return std::make_unique<LineCommand> ();
       case Tool::ToolKind::Arc:
         return std::make_unique<ArcCommand> ();
+      case Tool::ToolKind::Polyline:
+        return std::make_unique<PolylineCommand> ();
       case Tool::ToolKind::Circle:
         return std::make_unique<CircleCommand> ();
       case Tool::ToolKind::Ellipse:
@@ -64,6 +67,9 @@ namespace Qadra::Command
     if ( normalized == "circle" || normalized == "ci" ) return Tool::ToolKind::Circle;
     if ( normalized == "ellipse" || normalized == "el" ) return Tool::ToolKind::Ellipse;
     if ( normalized == "line" || normalized == "l" ) return Tool::ToolKind::Line;
+    if ( normalized == "pline" || normalized == "pl" || normalized == "polyline" ||
+         normalized == "lwpolyline" )
+      return Tool::ToolKind::Polyline;
     return std::nullopt;
   }
 } // namespace Qadra::Command

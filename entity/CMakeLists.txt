@@ -10,6 +10,8 @@ add_library(qadra_entity STATIC
   Ellipse.hpp
   Line.cpp
   Line.hpp
+  LWPolyline.cpp
+  LWPolyline.hpp
   Text.cpp
   Text.hpp
 )

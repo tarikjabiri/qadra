@@ -66,7 +66,7 @@ namespace Qadra::Ui
     format.setAlphaBufferSize ( 8 );
     format.setSwapInterval ( 0 );
     format.setDepthBufferSize ( 24 );
-    format.setSamples ( 4 );
+    // format.setSamples ( 4 );
     setFormat ( format );
 
     setFocusPolicy ( Qt::StrongFocus );

@@ -73,6 +73,7 @@ qt_add_resources(qadra "app_draw_assets"
         assets/draw-circle.svg
         assets/draw-ellipse.svg
         assets/draw-line.svg
+        assets/draw-lwpolyline.svg
         assets/draw-text.svg
 )
 

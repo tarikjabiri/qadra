@@ -102,21 +102,21 @@ namespace Qadra::Command
       return apply ( std::move ( output ) );
     }
 
-    if ( const auto commandKind = m_registry.resolveAlias ( submitted ) )
-      return start ( *commandKind, context );
-
     if ( isCancelAlias ( submitted ) ) return cancel ( context );
 
-    if ( ! m_activeCommand )
+    if ( m_activeCommand )
     {
-      Output output = Output::handledOnly ( true );
-      output.addHistory ( HistoryEntry::error ( "Unknown command." ) );
+      Output output = m_activeCommand->submit ( context, submitted );
+      output.handled = true;
+      output.viewChanged = true;
       return apply ( std::move ( output ) );
     }
 
-    Output output = m_activeCommand->submit ( context, submitted );
-    output.handled = true;
-    output.viewChanged = true;
+    if ( const auto commandKind = m_registry.resolveAlias ( submitted ) )
+      return start ( *commandKind, context );
+
+    Output output = Output::handledOnly ( true );
+    output.addHistory ( HistoryEntry::error ( "Unknown command." ) );
     return apply ( std::move ( output ) );
   }
 

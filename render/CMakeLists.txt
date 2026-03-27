@@ -13,6 +13,8 @@ add_library(qadra_render STATIC
   GridPass.hpp
   LinePass.cpp
   LinePass.hpp
+  LWPolylineGeometryBuilder.cpp
+  LWPolylineGeometryBuilder.hpp
   PreviewRenderer.cpp
   PreviewRenderer.hpp
   RenderScene.cpp

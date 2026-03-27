@@ -8,6 +8,7 @@ namespace Qadra::Entity
   {
     Line,
     Arc,
+    LWPolyline,
     Circle,
     Ellipse,
     Text,

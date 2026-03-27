@@ -21,6 +21,9 @@ add_library(qadra_command STATIC
   point/Parser.hpp
   point/Resolver.cpp
   point/Resolver.hpp
+  polyline/Command.cpp
+  polyline/Command.hpp
+  polyline/State.hpp
   PointerEvent.hpp
   Preview.hpp
   Registry.cpp

@@ -8,6 +8,7 @@ namespace Qadra::Tool
     None,
     Line,
     Arc,
+    Polyline,
     Circle,
     Ellipse,
     Text
