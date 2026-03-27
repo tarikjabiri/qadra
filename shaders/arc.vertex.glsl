@@ -1,0 +1,46 @@
+#version 460 core
+
+layout(location = 0) in dvec2 a_centerWorld;
+layout(location = 1) in vec2 a_boundsMinLocal;
+layout(location = 2) in vec2 a_boundsMaxLocal;
+layout(location = 3) in float a_radius;
+layout(location = 4) in float a_startAngle;
+layout(location = 5) in float a_sweepAngle;
+layout(location = 6) in vec4 a_color;
+layout(location = 7) in uint a_renderKey;
+
+uniform dmat4 u_viewProjection;
+uniform float u_renderKeyScale;
+uniform float u_pixelSizeWorld;
+
+out vec2 v_localWorld;
+flat out float v_radiusWorld;
+flat out float v_startAngle;
+flat out float v_sweepAngle;
+flat out vec4 v_color;
+
+const vec2 kCorners[6] = vec2[](
+    vec2(0.0, 0.0),
+    vec2(1.0, 0.0),
+    vec2(1.0, 1.0),
+    vec2(0.0, 0.0),
+    vec2(1.0, 1.0),
+    vec2(0.0, 1.0)
+);
+
+void main() {
+    const float proxyMarginWorld = u_pixelSizeWorld * 2.5;
+    vec2 localMin = a_boundsMinLocal - vec2(proxyMarginWorld);
+    vec2 localMax = a_boundsMaxLocal + vec2(proxyMarginWorld);
+    vec2 local = mix(localMin, localMax, kCorners[gl_VertexID]);
+    dvec2 world = a_centerWorld + dvec2(local);
+
+    gl_Position = vec4(u_viewProjection * dvec4(world, 0.0, 1.0));
+    gl_Position.z = 1.0 - float(a_renderKey + 1u) * u_renderKeyScale;
+
+    v_localWorld = local;
+    v_radiusWorld = a_radius;
+    v_startAngle = a_startAngle;
+    v_sweepAngle = a_sweepAngle;
+    v_color = a_color;
+}

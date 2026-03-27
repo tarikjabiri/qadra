@@ -1,4 +1,8 @@
 add_library(qadra_render STATIC
+  ArcInstanceBuilder.cpp
+  ArcInstanceBuilder.hpp
+  ArcPass.cpp
+  ArcPass.hpp
   GridPass.cpp
   GridPass.hpp
   LinePass.cpp

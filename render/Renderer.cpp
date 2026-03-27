@@ -10,11 +10,11 @@ namespace Qadra::Render
   }
 
   void Renderer::render ( const Cad::Document &document, const Core::Camera &camera,
-                          Core::Font &font, const std::span<const PreviewLine> previewLines )
+                          Core::Font &font, const PreviewScene &preview )
   {
     glEnable ( GL_BLEND );
     glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-    // glEnable ( GL_MULTISAMPLE );
+    glEnable ( GL_MULTISAMPLE );
 
     glViewport ( 0, 0, camera.width (), camera.height () );
     glClearColor ( 0.09f, 0.10f, 0.12f, 1.0f );
@@ -23,7 +23,7 @@ namespace Qadra::Render
     m_grid.render ( camera );
 
     m_scene.sync ( document, font );
-    m_preview.sync ( previewLines );
+    m_preview.sync ( preview );
 
     glEnable ( GL_DEPTH_TEST );
     m_scene.draw ( camera, font );

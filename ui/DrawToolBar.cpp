@@ -34,7 +34,7 @@ namespace Qadra::Ui
     m_actionGroup->addAction ( m_arcAction );
     m_actionGroup->addAction ( m_textAction );
 
-    m_arcAction->setEnabled ( false );
+    m_arcAction->setEnabled ( true );
     m_textAction->setEnabled ( false );
 
     auto bindAction = [this] ( QAction *action, const Tool::ToolKind kind )

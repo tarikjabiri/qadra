@@ -66,6 +66,7 @@ namespace Qadra::Ui
     format.setAlphaBufferSize ( 8 );
     format.setSwapInterval ( 0 );
     format.setDepthBufferSize ( 24 );
+    format.setSamples ( 4 );
     setFormat ( format );
 
     setFocusPolicy ( Qt::StrongFocus );
@@ -134,8 +135,8 @@ namespace Qadra::Ui
 
     updateCameraViewport ();
 
-    const auto previewLines = makePreviewLines ();
-    m_renderer->render ( m_document, m_camera, *m_font, previewLines );
+    const auto preview = makePreview ();
+    m_renderer->render ( m_document, m_camera, *m_font, preview );
 
     QPainter painter ( this );
     m_cursorOverlay.paint ( painter, makeCursorOverlayState () );
@@ -194,22 +195,34 @@ namespace Qadra::Ui
     return pointerEvent;
   }
 
-  std::vector<Render::PreviewLine> Canvas::makePreviewLines () const
+  Render::PreviewScene Canvas::makePreview () const
   {
     const Command::Preview preview = m_commandManager.preview ();
-    std::vector<Render::PreviewLine> lines;
-    lines.reserve ( preview.lines.size () );
+    Render::PreviewScene renderPreview;
+    renderPreview.lines.reserve ( preview.lines.size () );
+    renderPreview.arcs.reserve ( preview.arcs.size () );
 
     for ( const auto &line : preview.lines )
     {
-      lines.push_back ( Render::PreviewLine{
+      renderPreview.lines.push_back ( Render::PreviewLine{
           .start = line.start,
           .end = line.end,
           .color = line.color,
       } );
     }
 
-    return lines;
+    for ( const auto &arc : preview.arcs )
+    {
+      renderPreview.arcs.push_back ( Render::PreviewArc{
+          .center = arc.center,
+          .radius = arc.radius,
+          .startAngle = arc.startAngle,
+          .sweepAngle = arc.sweepAngle,
+          .color = arc.color,
+      } );
+    }
+
+    return renderPreview;
   }
 
   CanvasCursorOverlay::State Canvas::makeCursorOverlayState () const

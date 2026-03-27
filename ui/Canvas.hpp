@@ -76,7 +76,7 @@ namespace Qadra::Ui
 
     [[nodiscard]] Qadra::Command::PointerEvent makeCommandPointerEvent ( const QMouseEvent &event );
 
-    [[nodiscard]] std::vector<Qadra::Render::PreviewLine> makePreviewLines () const;
+    [[nodiscard]] Qadra::Render::PreviewScene makePreview () const;
     [[nodiscard]] CanvasCursorOverlay::State makeCursorOverlayState () const;
     [[nodiscard]] bool shouldUseCustomCursor () const noexcept;
     [[nodiscard]] bool shouldShowCursorPickbox () const noexcept;

@@ -1,6 +1,7 @@
 #ifndef QADRA_PREVIEW_RENDERER_HPP
 #define QADRA_PREVIEW_RENDERER_HPP
 
+#include "ArcPass.hpp"
 #include "Camera.hpp"
 #include "LinePass.hpp"
 #include "VertexBatch.hpp"
@@ -18,17 +19,35 @@ namespace Qadra::Render
     glm::vec4 color{ 1.0f };
   };
 
+  struct PreviewArc
+  {
+    glm::dvec2 center{ 0.0 };
+    double radius = 0.0;
+    double startAngle = 0.0;
+    double sweepAngle = 0.0;
+    glm::vec4 color{ 1.0f };
+  };
+
+  struct PreviewScene
+  {
+    std::vector<PreviewLine> lines;
+    std::vector<PreviewArc> arcs;
+  };
+
   class PreviewRenderer
   {
   public:
     void init ();
-    void sync ( std::span<const PreviewLine> lines );
+    void sync ( const PreviewScene &preview );
     void draw ( const Core::Camera &camera ) const;
 
   private:
     std::vector<LinePass::Vertex> m_vertices;
     VertexBatch<LinePass::Vertex> m_batch;
+    std::vector<ArcPass::Instance> m_arcInstances;
+    VertexBatch<ArcPass::Instance> m_arcBatch;
     LinePass m_linePass;
+    ArcPass m_arcPass;
   };
 } // namespace Qadra::Render
 

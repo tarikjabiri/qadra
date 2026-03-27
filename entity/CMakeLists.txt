@@ -1,4 +1,6 @@
 add_library(qadra_entity STATIC
+  Arc.cpp
+  Arc.hpp
   Entity.cpp
   Entity.hpp
   EntityType.hpp

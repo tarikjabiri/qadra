@@ -16,7 +16,7 @@ namespace Qadra::Render
   public:
     void init ();
     void render ( const Cad::Document &document, const Core::Camera &camera, Core::Font &font,
-                  std::span<const PreviewLine> previewLines = {} );
+                  const PreviewScene &preview );
 
   private:
     GridPass m_grid;

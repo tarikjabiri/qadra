@@ -1,5 +1,6 @@
 #include "Registry.hpp"
 
+#include "arc/Command.hpp"
 #include "line/Command.hpp"
 
 #include <cctype>
@@ -39,9 +40,10 @@ namespace Qadra::Command
     {
       case Tool::ToolKind::Line:
         return std::make_unique<LineCommand> ();
+      case Tool::ToolKind::Arc:
+        return std::make_unique<ArcCommand> ();
 
       case Tool::ToolKind::None:
-      case Tool::ToolKind::Arc:
       case Tool::ToolKind::Text:
         return nullptr;
     }
@@ -52,6 +54,7 @@ namespace Qadra::Command
   std::optional<Tool::ToolKind> Registry::resolveAlias ( const std::string_view text ) const
   {
     const std::string normalized = toLower ( trim ( text ) );
+    if ( normalized == "arc" || normalized == "a" ) return Tool::ToolKind::Arc;
     if ( normalized == "line" || normalized == "l" ) return Tool::ToolKind::Line;
     return std::nullopt;
   }

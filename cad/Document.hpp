@@ -1,6 +1,7 @@
 #ifndef QADRA_DOCUMENT_HPP
 #define QADRA_DOCUMENT_HPP
 
+#include "Arc.hpp"
 #include "DocumentChange.hpp"
 #include "Entity.hpp"
 #include "Font.hpp"
@@ -23,6 +24,8 @@ namespace Qadra::Cad
     Core::Handle next () { return Core::Handle ( ++m_handleSeed ); }
 
     Core::Handle addLine ( const Entity::LineRecord &record );
+
+    Core::Handle addArc ( const Entity::ArcRecord &record );
 
     Core::Handle addText ( const Entity::TextRecord &record, Core::Font &font );
 
