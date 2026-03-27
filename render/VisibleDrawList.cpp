@@ -15,7 +15,7 @@ namespace Qadra::Render
     if ( ! m_firsts.empty () )
     {
       const auto lastIndex = m_firsts.size () - 1;
-      if (const auto lastEnd = m_firsts[lastIndex] + m_counts[lastIndex]; lastEnd == first )
+      if ( const auto lastEnd = m_firsts[lastIndex] + m_counts[lastIndex]; lastEnd == first )
       {
         m_counts[lastIndex] += count;
         return;

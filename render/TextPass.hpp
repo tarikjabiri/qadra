@@ -6,6 +6,7 @@
 #include "gl/Buffer.hpp"
 #include "gl/Texture.hpp"
 
+#include <array>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <span>
@@ -15,20 +16,32 @@ namespace Qadra::Render
   class TextPass : public RenderPass
   {
   public:
-    struct Vertex
+    struct Instance
     {
-      glm::vec2 position;
-      glm::vec2 uv;
-      glm::vec4 color;
+      glm::vec2 textOriginWorld;
+      glm::vec2 quadMinLocal;
+      glm::vec2 quadMaxLocal;
+      std::array<std::uint16_t, 2> uvMin;
+      std::array<std::uint16_t, 2> uvMax;
+      std::array<std::int16_t, 2> rotation;
+      std::array<std::uint8_t, 4> color;
       std::uint32_t renderKey;
+    };
+
+    struct DrawCommand
+    {
+      std::uint32_t count = 6;
+      std::uint32_t instanceCount = 0;
+      std::uint32_t first = 0;
+      std::uint32_t baseInstance = 0;
     };
 
     TextPass ();
 
-    void renderRanges ( const Core::Camera &camera, const GL::Texture &atlas,
-                        double distanceFieldRange, const GL::Buffer &buffer,
-                        std::span<const GLint> firsts, std::span<const GLsizei> counts,
-                        float renderKeyScale ) const;
+    void renderIndirect ( const Core::Camera &camera, const GL::Texture &atlas,
+                          double distanceFieldRange, const GL::Buffer &instanceBuffer,
+                          const GL::Buffer &commandBuffer, GLsizei drawCount,
+                          float renderKeyScale ) const;
 
   protected:
     void setupAttributes () override;

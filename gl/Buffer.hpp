@@ -12,6 +12,7 @@ namespace Qadra::GL
     enum class Target : GLenum
     {
       ArrayBuffer = GL_ARRAY_BUFFER,
+      DrawIndirectBuffer = GL_DRAW_INDIRECT_BUFFER,
     };
 
     enum class Usage : GLenum

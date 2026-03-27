@@ -6,16 +6,15 @@ namespace Qadra::Render
 {
   TextPass::TextPass () : RenderPass ( "text" ) { }
 
-  void TextPass::renderRanges ( const Core::Camera &camera, const GL::Texture &atlas,
-                                const double distanceFieldRange, const GL::Buffer &buffer,
-                                const std::span<const GLint> firsts,
-                                const std::span<const GLsizei> counts,
-                                const float renderKeyScale ) const
+  void TextPass::renderIndirect ( const Core::Camera &camera, const GL::Texture &atlas,
+                                  const double distanceFieldRange, const GL::Buffer &instanceBuffer,
+                                  const GL::Buffer &commandBuffer, const GLsizei drawCount,
+                                  const float renderKeyScale ) const
   {
-    if ( firsts.empty () || firsts.size () != counts.size () ) return;
+    if ( drawCount <= 0 ) return;
     if ( ! beginRender ( camera, 1 ) ) return;
 
-    m_vao.attachVertexBuffer ( 0, buffer, 0, sizeof ( Vertex ) );
+    m_vao.attachVertexBuffer ( 0, instanceBuffer, 0, sizeof ( Instance ) );
 
     m_program.uniform ( "u_distanceFieldRange", static_cast<float> ( distanceFieldRange ) );
     m_program.uniform ( "u_renderKeyScale", renderKeyScale );
@@ -25,8 +24,9 @@ namespace Qadra::Render
     GLboolean depthMask = GL_TRUE;
     glGetBooleanv ( GL_DEPTH_WRITEMASK, &depthMask );
     glDepthMask ( GL_FALSE );
-    glMultiDrawArrays ( GL_TRIANGLES, firsts.data (), counts.data (),
-                        static_cast<GLsizei> ( firsts.size () ) );
+    commandBuffer.bind ();
+    glMultiDrawArraysIndirect ( GL_TRIANGLES, nullptr, drawCount, 0 );
+    commandBuffer.unbind ();
     glDepthMask ( depthMask );
   }
 
@@ -35,15 +35,40 @@ namespace Qadra::Render
     m_vao.attribute ( { .index = 0,
                         .size = 2,
                         .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Vertex, position ) } );
-    m_vao.attribute (
-        { .index = 1, .size = 2, .type = GL_FLOAT, .relativeOffset = offsetof ( Vertex, uv ) } );
-    m_vao.attribute (
-        { .index = 2, .size = 4, .type = GL_FLOAT, .relativeOffset = offsetof ( Vertex, color ) } );
+                        .relativeOffset = offsetof ( Instance, textOriginWorld ) } );
+    m_vao.attribute ( { .index = 1,
+                        .size = 2,
+                        .type = GL_FLOAT,
+                        .relativeOffset = offsetof ( Instance, quadMinLocal ) } );
+    m_vao.attribute ( { .index = 2,
+                        .size = 2,
+                        .type = GL_FLOAT,
+                        .relativeOffset = offsetof ( Instance, quadMaxLocal ) } );
     m_vao.attribute ( { .index = 3,
+                        .size = 2,
+                        .type = GL_UNSIGNED_SHORT,
+                        .relativeOffset = offsetof ( Instance, uvMin ),
+                        .normalized = GL_TRUE } );
+    m_vao.attribute ( { .index = 4,
+                        .size = 2,
+                        .type = GL_UNSIGNED_SHORT,
+                        .relativeOffset = offsetof ( Instance, uvMax ),
+                        .normalized = GL_TRUE } );
+    m_vao.attribute ( { .index = 5,
+                        .size = 2,
+                        .type = GL_SHORT,
+                        .relativeOffset = offsetof ( Instance, rotation ),
+                        .normalized = GL_TRUE } );
+    m_vao.attribute ( { .index = 6,
+                        .size = 4,
+                        .type = GL_UNSIGNED_BYTE,
+                        .relativeOffset = offsetof ( Instance, color ),
+                        .normalized = GL_TRUE } );
+    m_vao.attribute ( { .index = 7,
                         .size = 1,
                         .type = GL_UNSIGNED_INT,
-                        .relativeOffset = offsetof ( Vertex, renderKey ),
+                        .relativeOffset = offsetof ( Instance, renderKey ),
                         .integer = true } );
+    m_vao.bindingDivisor ( 0, 1 );
   }
 } // namespace Qadra::Render

@@ -1,5 +1,9 @@
 #include "RenderScene.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 namespace
 {
   float normalizedByte ( const std::uint32_t value, const int shift )
@@ -56,18 +60,21 @@ namespace Qadra::Render
   void RenderScene::draw ( const Core::Camera &camera, const Core::Font &font ) const
   {
     rebuildVisibleDrawLists ( camera );
+    uploadVisibleTextCommands ();
 
     m_linePass.renderRanges ( camera, m_mainLineBatch.buffer (), m_visibleMainLines.firsts (),
                               m_visibleMainLines.counts (), m_renderKeyScale );
     m_linePass.renderRanges ( camera, m_overlayLineBatch.buffer (), m_visibleOverlayLines.firsts (),
                               m_visibleOverlayLines.counts (), m_renderKeyScale );
 
-    m_textPass.renderRanges ( camera, font.texture (), font.distanceFieldRange (),
-                              m_mainTextBatch.buffer (), m_visibleMainTexts.firsts (),
-                              m_visibleMainTexts.counts (), m_renderKeyScale );
-    m_textPass.renderRanges ( camera, font.texture (), font.distanceFieldRange (),
-                              m_overlayTextBatch.buffer (), m_visibleOverlayTexts.firsts (),
-                              m_visibleOverlayTexts.counts (), m_renderKeyScale );
+    m_textPass.renderIndirect ( camera, font.texture (), font.distanceFieldRange (),
+                                m_mainTextBatch.buffer (), m_mainTextCommandBuffer,
+                                static_cast<GLsizei> ( m_visibleMainTextCommands.size () ),
+                                m_renderKeyScale );
+    m_textPass.renderIndirect ( camera, font.texture (), font.distanceFieldRange (),
+                                m_overlayTextBatch.buffer (), m_overlayTextCommandBuffer,
+                                static_cast<GLsizei> ( m_visibleOverlayTextCommands.size () ),
+                                m_renderKeyScale );
   }
 
   void RenderScene::rebuildMain ( const Cad::Document &document, Core::Font &font )
@@ -75,7 +82,7 @@ namespace Qadra::Render
     m_pages.clear ();
     m_placements.clear ();
     m_mainLineVertices.clear ();
-    m_mainTextVertices.clear ();
+    m_mainTextInstances.clear ();
     clearOverlay ();
 
     const auto &order = document.drawOrder ();
@@ -84,7 +91,7 @@ namespace Qadra::Render
     bool hasCurrentPage = false;
     std::size_t entitiesInPage = 0;
     std::size_t lineVerticesInPage = 0;
-    std::size_t textVerticesInPage = 0;
+    std::size_t textInstancesInPage = 0;
 
     auto beginPage = [&] ()
     {
@@ -92,12 +99,12 @@ namespace Qadra::Render
           .bbox = Math::BoxAABB (),
           .lineFirst = static_cast<GLint> ( m_mainLineVertices.size () ),
           .lineCount = 0,
-          .textFirst = static_cast<GLint> ( m_mainTextVertices.size () ),
-          .textCount = 0,
+          .textInstanceFirst = static_cast<GLuint> ( m_mainTextInstances.size () ),
+          .textInstanceCount = 0,
       };
       entitiesInPage = 0;
       lineVerticesInPage = 0;
-      textVerticesInPage = 0;
+      textInstancesInPage = 0;
       hasCurrentPage = true;
     };
 
@@ -106,7 +113,7 @@ namespace Qadra::Render
       if ( ! hasCurrentPage ) return;
 
       currentPage.lineCount = static_cast<GLsizei> ( lineVerticesInPage );
-      currentPage.textCount = static_cast<GLsizei> ( textVerticesInPage );
+      currentPage.textInstanceCount = static_cast<GLuint> ( textInstancesInPage );
       m_pages.push_back ( currentPage );
       hasCurrentPage = false;
     };
@@ -122,7 +129,7 @@ namespace Qadra::Render
           hasCurrentPage &&
           ( entitiesInPage >= kMaxEntitiesPerPage ||
             lineVerticesInPage + geometry.lineVertices.size () > kMaxLineVerticesPerPage ||
-            textVerticesInPage + geometry.textVertices.size () > kMaxTextVerticesPerPage );
+            textInstancesInPage + geometry.textInstances.size () > kMaxTextInstancesPerPage );
 
       if ( ! hasCurrentPage || pageWouldOverflow )
       {
@@ -131,16 +138,16 @@ namespace Qadra::Render
       }
 
       const GLint lineFirst = static_cast<GLint> ( m_mainLineVertices.size () );
-      const GLint textFirst = static_cast<GLint> ( m_mainTextVertices.size () );
+      const GLuint textInstanceFirst = static_cast<GLuint> ( m_mainTextInstances.size () );
 
       m_mainLineVertices.insert ( m_mainLineVertices.end (), geometry.lineVertices.begin (),
                                   geometry.lineVertices.end () );
-      m_mainTextVertices.insert ( m_mainTextVertices.end (), geometry.textVertices.begin (),
-                                  geometry.textVertices.end () );
+      m_mainTextInstances.insert ( m_mainTextInstances.end (), geometry.textInstances.begin (),
+                                   geometry.textInstances.end () );
 
       currentPage.bbox.merge ( geometry.bbox );
       lineVerticesInPage += geometry.lineVertices.size ();
-      textVerticesInPage += geometry.textVertices.size ();
+      textInstancesInPage += geometry.textInstances.size ();
       ++entitiesInPage;
 
       m_placements[handle] = Placement{
@@ -148,8 +155,8 @@ namespace Qadra::Render
           .bbox = geometry.bbox,
           .lineFirst = lineFirst,
           .lineCount = static_cast<GLsizei> ( geometry.lineVertices.size () ),
-          .textFirst = textFirst,
-          .textCount = static_cast<GLsizei> ( geometry.textVertices.size () ),
+          .textInstanceFirst = textInstanceFirst,
+          .textInstanceCount = static_cast<GLuint> ( geometry.textInstances.size () ),
       };
     }
 
@@ -157,7 +164,7 @@ namespace Qadra::Render
 
     m_mainLineBatch.upload ( std::span<const LinePass::Vertex> ( m_mainLineVertices ),
                              GL::Buffer::Usage::StaticDraw );
-    m_mainTextBatch.upload ( std::span<const TextPass::Vertex> ( m_mainTextVertices ),
+    m_mainTextBatch.upload ( std::span<const TextPass::Instance> ( m_mainTextInstances ),
                              GL::Buffer::Usage::StaticDraw );
     m_bootstrapped = true;
   }
@@ -171,16 +178,16 @@ namespace Qadra::Render
     GeometrySpan geometry = buildGeometry ( *entity, font );
 
     const GLint lineFirst = static_cast<GLint> ( m_overlayLineVertices.size () );
-    const GLint textFirst = static_cast<GLint> ( m_overlayTextVertices.size () );
+    const GLuint textInstanceFirst = static_cast<GLuint> ( m_overlayTextInstances.size () );
 
     m_overlayLineVertices.insert ( m_overlayLineVertices.end (), geometry.lineVertices.begin (),
                                    geometry.lineVertices.end () );
-    m_overlayTextVertices.insert ( m_overlayTextVertices.end (), geometry.textVertices.begin (),
-                                   geometry.textVertices.end () );
+    m_overlayTextInstances.insert ( m_overlayTextInstances.end (), geometry.textInstances.begin (),
+                                    geometry.textInstances.end () );
 
     m_overlayLineBatch.upload ( std::span<const LinePass::Vertex> ( m_overlayLineVertices ),
                                 GL::Buffer::Usage::DynamicDraw );
-    m_overlayTextBatch.upload ( std::span<const TextPass::Vertex> ( m_overlayTextVertices ),
+    m_overlayTextBatch.upload ( std::span<const TextPass::Instance> ( m_overlayTextInstances ),
                                 GL::Buffer::Usage::DynamicDraw );
 
     const Placement placement{
@@ -188,8 +195,8 @@ namespace Qadra::Render
         .bbox = geometry.bbox,
         .lineFirst = lineFirst,
         .lineCount = static_cast<GLsizei> ( geometry.lineVertices.size () ),
-        .textFirst = textFirst,
-        .textCount = static_cast<GLsizei> ( geometry.textVertices.size () ),
+        .textInstanceFirst = textInstanceFirst,
+        .textInstanceCount = static_cast<GLuint> ( geometry.textInstances.size () ),
     };
 
     m_overlayPlacements.push_back ( placement );
@@ -199,20 +206,20 @@ namespace Qadra::Render
   void RenderScene::clearOverlay ()
   {
     m_overlayLineVertices.clear ();
-    m_overlayTextVertices.clear ();
+    m_overlayTextInstances.clear ();
     m_overlayPlacements.clear ();
     m_overlayLineBatch.upload ( std::span<const LinePass::Vertex> ( m_overlayLineVertices ),
                                 GL::Buffer::Usage::DynamicDraw );
-    m_overlayTextBatch.upload ( std::span<const TextPass::Vertex> ( m_overlayTextVertices ),
+    m_overlayTextBatch.upload ( std::span<const TextPass::Instance> ( m_overlayTextInstances ),
                                 GL::Buffer::Usage::DynamicDraw );
   }
 
   void RenderScene::rebuildVisibleDrawLists ( const Core::Camera &camera ) const
   {
     m_visibleMainLines.clear ();
-    m_visibleMainTexts.clear ();
     m_visibleOverlayLines.clear ();
-    m_visibleOverlayTexts.clear ();
+    m_visibleMainTextCommands.clear ();
+    m_visibleOverlayTextCommands.clear ();
 
     const Math::BoxAABB viewport = camera.viewportBox ();
 
@@ -221,7 +228,14 @@ namespace Qadra::Render
       if ( ! page.bbox.intersects ( viewport ) ) continue;
 
       m_visibleMainLines.append ( page.lineFirst, page.lineCount );
-      m_visibleMainTexts.append ( page.textFirst, page.textCount );
+      if ( page.textInstanceCount == 0 ) continue;
+
+      m_visibleMainTextCommands.push_back ( TextPass::DrawCommand{
+          .count = 6,
+          .instanceCount = page.textInstanceCount,
+          .first = 0,
+          .baseInstance = page.textInstanceFirst,
+      } );
     }
 
     for ( const auto &placement : m_overlayPlacements )
@@ -229,12 +243,30 @@ namespace Qadra::Render
       if ( ! placement.bbox.intersects ( viewport ) ) continue;
 
       m_visibleOverlayLines.append ( placement.lineFirst, placement.lineCount );
-      m_visibleOverlayTexts.append ( placement.textFirst, placement.textCount );
+      if ( placement.textInstanceCount == 0 ) continue;
+
+      m_visibleOverlayTextCommands.push_back ( TextPass::DrawCommand{
+          .count = 6,
+          .instanceCount = placement.textInstanceCount,
+          .first = 0,
+          .baseInstance = placement.textInstanceFirst,
+      } );
     }
   }
 
+  void RenderScene::uploadVisibleTextCommands () const
+  {
+    m_mainTextCommandBuffer.allocate (
+        std::span<const TextPass::DrawCommand> ( m_visibleMainTextCommands ),
+        GL::Buffer::Usage::DynamicDraw );
+    m_overlayTextCommandBuffer.allocate (
+        std::span<const TextPass::DrawCommand> ( m_visibleOverlayTextCommands ),
+        GL::Buffer::Usage::DynamicDraw );
+  }
+
   RenderScene::GeometrySpan RenderScene::buildGeometry ( const Entity::Entity &entity,
-                                                         Core::Font &font ) {
+                                                         Core::Font &font )
+  {
     GeometrySpan geometry;
     geometry.bbox = entity.bbox ();
 
@@ -254,14 +286,17 @@ namespace Qadra::Render
       {
         const auto &text = static_cast<const Entity::Text &> ( entity );
         const double scale = text.height () / font.unitsPerEm ();
-        const double cosAngle = std::cos ( text.rotation () );
-        const double sinAngle = std::sin ( text.rotation () );
-
-        auto transform = [&] ( const glm::dvec2 &local ) -> glm::vec2
-        {
-          return glm::vec2 ( text.position () +
-                             glm::dvec2 ( local.x * cosAngle - local.y * sinAngle,
-                                          local.x * sinAngle + local.y * cosAngle ) );
+        const float cosAngle = static_cast<float> ( std::cos ( text.rotation () ) );
+        const float sinAngle = static_cast<float> ( std::sin ( text.rotation () ) );
+        const auto packedColor = std::array<std::uint8_t, 4>{
+            packUnorm8 ( color.r ),
+            packUnorm8 ( color.g ),
+            packUnorm8 ( color.b ),
+            packUnorm8 ( color.a ),
+        };
+        const auto packedRotation = std::array<std::int16_t, 2>{
+            packSnorm16 ( cosAngle ),
+            packSnorm16 ( sinAngle ),
         };
 
         glm::dvec2 cursor ( 0.0 );
@@ -274,23 +309,16 @@ namespace Qadra::Render
             const glm::dvec2 qMin = offset + glm::dvec2 ( glyph.quadMin ) * text.height ();
             const glm::dvec2 qMax = offset + glm::dvec2 ( glyph.quadMax ) * text.height ();
 
-            const glm::vec2 p0 = transform ( { qMin.x, qMin.y } );
-            const glm::vec2 p1 = transform ( { qMax.x, qMin.y } );
-            const glm::vec2 p2 = transform ( { qMax.x, qMax.y } );
-            const glm::vec2 p3 = transform ( { qMin.x, qMax.y } );
-
-            geometry.textVertices.push_back (
-                { p0, { glyph.uvMin.x, glyph.uvMin.y }, color, renderKey } );
-            geometry.textVertices.push_back (
-                { p1, { glyph.uvMax.x, glyph.uvMin.y }, color, renderKey } );
-            geometry.textVertices.push_back (
-                { p2, { glyph.uvMax.x, glyph.uvMax.y }, color, renderKey } );
-            geometry.textVertices.push_back (
-                { p0, { glyph.uvMin.x, glyph.uvMin.y }, color, renderKey } );
-            geometry.textVertices.push_back (
-                { p2, { glyph.uvMax.x, glyph.uvMax.y }, color, renderKey } );
-            geometry.textVertices.push_back (
-                { p3, { glyph.uvMin.x, glyph.uvMax.y }, color, renderKey } );
+            geometry.textInstances.push_back ( TextPass::Instance{
+                .textOriginWorld = glm::vec2 ( text.position () ),
+                .quadMinLocal = glm::vec2 ( qMin ),
+                .quadMaxLocal = glm::vec2 ( qMax ),
+                .uvMin = { packUnorm16 ( glyph.uvMin.x ), packUnorm16 ( glyph.uvMin.y ) },
+                .uvMax = { packUnorm16 ( glyph.uvMax.x ), packUnorm16 ( glyph.uvMax.y ) },
+                .rotation = packedRotation,
+                .color = packedColor,
+                .renderKey = renderKey,
+            } );
           }
 
           cursor += shapedGlyph.advance;
@@ -306,7 +334,7 @@ namespace Qadra::Render
   {
     return m_overlayPlacements.size () > kMaxOverlayEntities ||
            m_overlayLineVertices.size () > kMaxOverlayLineVertices ||
-           m_overlayTextVertices.size () > kMaxOverlayTextVertices;
+           m_overlayTextInstances.size () > kMaxOverlayTextInstances;
   }
 
   glm::vec4 RenderScene::colorForRenderKey ( const std::uint32_t renderKey )
@@ -318,5 +346,24 @@ namespace Qadra::Render
         0.2f + 0.6f * normalizedByte ( mixed, 16 ),
         1.0f,
     };
+  }
+
+  std::uint16_t RenderScene::packUnorm16 ( const float value )
+  {
+    const float clamped = std::clamp ( value, 0.0f, 1.0f );
+    return static_cast<std::uint16_t> ( std::lround ( clamped * 65535.0f ) );
+  }
+
+  std::int16_t RenderScene::packSnorm16 ( const float value )
+  {
+    const float clamped = std::clamp ( value, -1.0f, 1.0f );
+    if ( clamped <= -1.0f ) return std::numeric_limits<std::int16_t>::min ();
+    return static_cast<std::int16_t> ( std::lround ( clamped * 32767.0f ) );
+  }
+
+  std::uint8_t RenderScene::packUnorm8 ( const float value )
+  {
+    const float clamped = std::clamp ( value, 0.0f, 1.0f );
+    return static_cast<std::uint8_t> ( std::lround ( clamped * 255.0f ) );
   }
 } // namespace Qadra::Render
