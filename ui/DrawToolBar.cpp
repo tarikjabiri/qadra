@@ -19,7 +19,7 @@ namespace Qadra::Ui
     setIconSize ( QSize ( 32, 32 ) );
 
     m_actionGroup = new QActionGroup ( this );
-    m_actionGroup->setExclusionPolicy ( QActionGroup::ExclusionPolicy::Exclusive );
+    m_actionGroup->setExclusionPolicy ( QActionGroup::ExclusionPolicy::ExclusiveOptional );
 
     m_lineAction = addAction ( QIcon ( ":/assets/draw-line.svg" ), tr ( "Line" ) );
     m_arcAction = addAction ( QIcon ( ":/assets/draw-arc.svg" ), tr ( "Arc" ) );
@@ -36,13 +36,15 @@ namespace Qadra::Ui
     m_arcAction->setEnabled ( false );
     m_textAction->setEnabled ( false );
 
-    connect ( m_lineAction, &QAction::triggered, this,
-              [this] ( const bool checked )
-              {
-                if ( checked ) emit toolSelected ( Tool::ToolKind::Line );
-              } );
+    auto bindAction = [this] ( QAction *action, const Tool::ToolKind kind )
+    {
+      connect ( action, &QAction::toggled, this, [this, kind] ( const bool checked )
+                { emit toolSelected ( checked ? kind : Tool::ToolKind::None ); } );
+    };
 
-    m_lineAction->setChecked ( true );
+    bindAction ( m_lineAction, Tool::ToolKind::Line );
+    bindAction ( m_arcAction, Tool::ToolKind::Arc );
+    bindAction ( m_textAction, Tool::ToolKind::Text );
   }
 
   DrawToolBar::~DrawToolBar () = default;

@@ -5,10 +5,12 @@
 #include "ToolPreview.hpp"
 
 #include <QCursor>
+#include <QEnterEvent>
 #include <QFile>
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QOpenGLContext>
+#include <QPainter>
 #include <QSurfaceFormat>
 #include <QWheelEvent>
 #include <glad/gl.h>
@@ -121,9 +123,30 @@ namespace Qadra::Ui
 
     const auto previewLines = makePreviewLines ();
     m_renderer->render ( m_document, m_camera, *m_font, previewLines );
+
+    QPainter painter ( this );
+    m_cursorOverlay.paint ( painter, makeCursorOverlayState () );
   }
 
   void Canvas::resizeGL ( const int, const int ) { updateCameraViewport (); }
+
+  void Canvas::enterEvent ( QEnterEvent *event )
+  {
+    m_isMouseInside = true;
+    updateCursorPosition ( event->position () );
+    syncCanvasCursor ();
+    update ();
+    QOpenGLWidget::enterEvent ( event );
+  }
+
+  void Canvas::leaveEvent ( QEvent *event )
+  {
+    m_isMouseInside = false;
+    m_hasCursorPosition = false;
+    syncCanvasCursor ();
+    update ();
+    QOpenGLWidget::leaveEvent ( event );
+  }
 
   QFunctionPointer Canvas::getProcAddress ( const char *procName )
   {
@@ -175,6 +198,48 @@ namespace Qadra::Ui
     return lines;
   }
 
+  CanvasCursorOverlay::State Canvas::makeCursorOverlayState () const
+  {
+    return CanvasCursorOverlay::State{
+        .position = m_cursorPosition,
+        .visible = shouldUseCustomCursor () && m_hasCursorPosition,
+        .showPickbox = shouldShowCursorPickbox (),
+    };
+  }
+
+  bool Canvas::shouldUseCustomCursor () const noexcept
+  {
+    return m_isMouseInside && ! m_cameraController.isPanning ();
+  }
+
+  bool Canvas::shouldShowCursorPickbox () const noexcept
+  {
+    return m_toolManager.activeToolKind () == Tool::ToolKind::None;
+  }
+
+  void Canvas::syncCanvasCursor ()
+  {
+    if ( m_cameraController.isPanning () )
+    {
+      setCursor ( Qt::ClosedHandCursor );
+      return;
+    }
+
+    if ( shouldUseCustomCursor () )
+    {
+      setCursor ( Qt::BlankCursor );
+      return;
+    }
+
+    unsetCursor ();
+  }
+
+  void Canvas::updateCursorPosition ( const QPointF &position )
+  {
+    m_cursorPosition = position;
+    m_hasCursorPosition = true;
+  }
+
   void Canvas::updateCameraViewport ()
   {
     m_camera.setDevicePixelRatio ( devicePixelRatioF () );
@@ -195,11 +260,14 @@ namespace Qadra::Ui
 
   void Canvas::mousePressEvent ( QMouseEvent *event )
   {
+    updateCursorPosition ( event->position () );
+
     if ( event->button () == Qt::MiddleButton )
     {
       const auto position = m_camera.devicePixels ( event->position () );
       m_cameraController.mousePress ( position, event->button () );
-      setCursor ( Qt::ClosedHandCursor );
+      syncCanvasCursor ();
+      update ();
       event->accept ();
       return;
     }
@@ -220,10 +288,13 @@ namespace Qadra::Ui
 
   void Canvas::mouseReleaseEvent ( QMouseEvent *event )
   {
+    updateCursorPosition ( event->position () );
+
     if ( event->button () == Qt::MiddleButton )
     {
       m_cameraController.mouseRelease ( event->button () );
-      unsetCursor ();
+      syncCanvasCursor ();
+      update ();
       event->accept ();
       return;
     }
@@ -244,11 +315,14 @@ namespace Qadra::Ui
 
   void Canvas::mouseMoveEvent ( QMouseEvent *event )
   {
+    updateCursorPosition ( event->position () );
+
     const auto position = m_camera.devicePixels ( event->position () );
     m_cameraController.mouseMove ( position );
 
     if ( m_cameraController.isPanning () )
     {
+      syncCanvasCursor ();
       update ();
       event->accept ();
       return;
@@ -257,7 +331,9 @@ namespace Qadra::Ui
     const Tool::ToolEventResult result =
         m_toolManager.handlePointerMove ( makeToolContext (), makeToolPointerEvent ( *event ) );
 
+    syncCanvasCursor ();
     applyToolEventResult ( result );
+    update ();
 
     if ( result.handled )
     {
@@ -270,6 +346,7 @@ namespace Qadra::Ui
 
   void Canvas::wheelEvent ( QWheelEvent *event )
   {
+    updateCursorPosition ( event->position () );
     const float delta = event->angleDelta ().y () / 120.0f;
     const auto pos = m_camera.devicePixels ( event->position () );
     m_cameraController.wheel ( delta, pos );
