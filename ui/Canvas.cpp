@@ -1,9 +1,5 @@
 #include "Canvas.hpp"
 
-#include "LineTool.hpp"
-#include "Tool.hpp"
-#include "ToolPreview.hpp"
-
 #include <QCursor>
 #include <QEnterEvent>
 #include <QFile>
@@ -15,48 +11,48 @@
 #include <QSurfaceFormat>
 #include <QWheelEvent>
 #include <glad/gl.h>
-#include <memory>
 
 namespace
 {
-  [[nodiscard]] Qadra::Tool::ToolPointerButton toToolPointerButton ( const Qt::MouseButton button )
+  [[nodiscard]] Qadra::Command::PointerButton toPointerButton ( const Qt::MouseButton button )
   {
     switch ( button )
     {
       case Qt::LeftButton:
-        return Qadra::Tool::ToolPointerButton::Left;
+        return Qadra::Command::PointerButton::Left;
       case Qt::MiddleButton:
-        return Qadra::Tool::ToolPointerButton::Middle;
+        return Qadra::Command::PointerButton::Middle;
       case Qt::RightButton:
-        return Qadra::Tool::ToolPointerButton::Right;
+        return Qadra::Command::PointerButton::Right;
       default:
-        return Qadra::Tool::ToolPointerButton::None;
+        return Qadra::Command::PointerButton::None;
     }
   }
 
-  [[nodiscard]] Qadra::Tool::ToolModifiers
-  toToolModifiers ( const Qt::KeyboardModifiers modifiers ) noexcept
+  [[nodiscard]] Qadra::Command::PointerModifiers
+  toPointerModifiers ( const Qt::KeyboardModifiers modifiers ) noexcept
   {
-    Qadra::Tool::ToolModifiers toolModifiers;
-    toolModifiers.shift = modifiers.testFlag ( Qt::ShiftModifier );
-    toolModifiers.control = modifiers.testFlag ( Qt::ControlModifier );
-    toolModifiers.alt = modifiers.testFlag ( Qt::AltModifier );
-    return toolModifiers;
+    Qadra::Command::PointerModifiers pointerModifiers;
+    pointerModifiers.shift = modifiers.testFlag ( Qt::ShiftModifier );
+    pointerModifiers.control = modifiers.testFlag ( Qt::ControlModifier );
+    pointerModifiers.alt = modifiers.testFlag ( Qt::AltModifier );
+    return pointerModifiers;
   }
 
-  [[nodiscard]] std::unique_ptr<Qadra::Tool::Tool> createTool ( const Qadra::Tool::ToolKind kind )
+  [[nodiscard]] bool shouldRedirectCommandInput ( const QKeyEvent &event ) noexcept
   {
-    switch ( kind )
+    const Qt::KeyboardModifiers blockedModifiers =
+        Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier;
+
+    if ( ( event.modifiers () & blockedModifiers ) != 0 ) return false;
+    if ( event.text ().isEmpty () ) return false;
+
+    for ( const QChar ch : event.text () )
     {
-      case Qadra::Tool::ToolKind::Line:
-        return std::make_unique<Qadra::Tool::LineTool> ();
-      case Qadra::Tool::ToolKind::None:
-      case Qadra::Tool::ToolKind::Arc:
-      case Qadra::Tool::ToolKind::Text:
-        return nullptr;
+      if ( ! ch.isPrint () ) return false;
     }
 
-    return nullptr;
+    return true;
   }
 } // namespace
 
@@ -76,17 +72,33 @@ namespace Qadra::Ui
     setMouseTracking ( true );
   }
 
-  void Canvas::setActiveTool ( const Tool::ToolKind kind )
+  void Canvas::startCommand ( const Tool::ToolKind kind )
   {
-    if ( kind == m_toolManager.activeToolKind () ) return;
-
-    const Tool::ToolContext context = makeToolContext ();
-    const Tool::ToolEventResult result =
-        kind == Tool::ToolKind::None ? m_toolManager.clearActiveTool ( context )
-                                     : m_toolManager.setActiveTool ( createTool ( kind ), context );
-
-    applyToolEventResult ( result );
+    applyCommandOutput ( m_commandManager.start ( kind, makeCommandContext () ) );
   }
+
+  void Canvas::cancelCommand ()
+  {
+    applyCommandOutput ( m_commandManager.cancel ( makeCommandContext () ) );
+  }
+
+  void Canvas::setCommandInput ( const QString &text )
+  {
+    m_commandManager.setInput ( text.toStdString () );
+    emit commandViewChanged ();
+  }
+
+  void Canvas::submitCommandInput ()
+  {
+    applyCommandOutput ( m_commandManager.submit ( makeCommandContext () ) );
+  }
+
+  Tool::ToolKind Canvas::activeToolKind () const noexcept
+  {
+    return m_commandManager.activeToolKind ();
+  }
+
+  Command::View Canvas::commandView () const { return m_commandManager.view (); }
 
   void Canvas::initializeGL ()
   {
@@ -106,9 +118,9 @@ namespace Qadra::Ui
     m_initialized = true;
 
     m_document.addLine ( { { -100.0, -100.0 }, { 100.0, 100.0 } } );
-    for ( size_t i = 0; i < 700; i++ )
+    for ( size_t i = 0; i < 3; i++ )
     {
-      for ( size_t j = 0; j < 800; j++ )
+      for ( size_t j = 0; j < 30; j++ )
       {
         m_document.addText (
             { { i * 1650, j * 120 }, "Hello Qadra, Developed using OpenGL/Qt", 50.0 }, *m_font );
@@ -158,32 +170,33 @@ namespace Qadra::Ui
     return nullptr;
   }
 
-  Tool::ToolContext Canvas::makeToolContext ()
+  Command::Context Canvas::makeCommandContext ()
   {
-    return Tool::ToolContext{ m_document, m_camera, m_font ? &*m_font : nullptr };
+    return Command::Context{ m_document, m_camera, m_font ? &*m_font : nullptr };
   }
 
-  void Canvas::applyToolEventResult ( const Tool::ToolEventResult &result )
+  void Canvas::applyCommandOutput ( const Command::Output &output )
   {
-    if ( result.requestRepaint ) update ();
+    if ( output.requestRepaint ) update ();
+    if ( output.viewChanged ) emit commandViewChanged ();
   }
 
-  Tool::ToolPointerEvent Canvas::makeToolPointerEvent ( const QMouseEvent &event )
+  Command::PointerEvent Canvas::makeCommandPointerEvent ( const QMouseEvent &event )
   {
     updateCameraViewport ();
 
     const glm::dvec2 screenPosition = m_camera.devicePixels ( event.position () );
-    Tool::ToolPointerEvent toolEvent;
-    toolEvent.screenPosition = screenPosition;
-    toolEvent.worldPosition = m_camera.screenToWorld ( screenPosition );
-    toolEvent.button = toToolPointerButton ( event.button () );
-    toolEvent.modifiers = toToolModifiers ( event.modifiers () );
-    return toolEvent;
+    Command::PointerEvent pointerEvent;
+    pointerEvent.screenPosition = screenPosition;
+    pointerEvent.worldPosition = m_camera.screenToWorld ( screenPosition );
+    pointerEvent.button = toPointerButton ( event.button () );
+    pointerEvent.modifiers = toPointerModifiers ( event.modifiers () );
+    return pointerEvent;
   }
 
-  std::vector<Render::PreviewLine> Canvas::makePreviewLines ()
+  std::vector<Render::PreviewLine> Canvas::makePreviewLines () const
   {
-    const Tool::ToolPreview preview = m_toolManager.preview ( makeToolContext () );
+    const Command::Preview preview = m_commandManager.preview ();
     std::vector<Render::PreviewLine> lines;
     lines.reserve ( preview.lines.size () );
 
@@ -215,7 +228,7 @@ namespace Qadra::Ui
 
   bool Canvas::shouldShowCursorPickbox () const noexcept
   {
-    return m_toolManager.activeToolKind () == Tool::ToolKind::None;
+    return m_commandManager.activeToolKind () == Tool::ToolKind::None;
   }
 
   void Canvas::syncCanvasCursor ()
@@ -274,12 +287,12 @@ namespace Qadra::Ui
       return;
     }
 
-    const Tool::ToolEventResult result =
-        m_toolManager.handlePointerPress ( makeToolContext (), makeToolPointerEvent ( *event ) );
+    const Command::Output output =
+        m_commandManager.pointerPress ( makeCommandContext (), makeCommandPointerEvent ( *event ) );
 
-    applyToolEventResult ( result );
+    applyCommandOutput ( output );
 
-    if ( result.handled )
+    if ( output.handled )
     {
       event->accept ();
       return;
@@ -301,12 +314,12 @@ namespace Qadra::Ui
       return;
     }
 
-    const Tool::ToolEventResult result =
-        m_toolManager.handlePointerRelease ( makeToolContext (), makeToolPointerEvent ( *event ) );
+    const Command::Output output = m_commandManager.pointerRelease (
+        makeCommandContext (), makeCommandPointerEvent ( *event ) );
 
-    applyToolEventResult ( result );
+    applyCommandOutput ( output );
 
-    if ( result.handled )
+    if ( output.handled )
     {
       event->accept ();
       return;
@@ -330,14 +343,14 @@ namespace Qadra::Ui
       return;
     }
 
-    const Tool::ToolEventResult result =
-        m_toolManager.handlePointerMove ( makeToolContext (), makeToolPointerEvent ( *event ) );
+    const Command::Output output =
+        m_commandManager.pointerMove ( makeCommandContext (), makeCommandPointerEvent ( *event ) );
 
     syncCanvasCursor ();
-    applyToolEventResult ( result );
+    applyCommandOutput ( output );
     update ();
 
-    if ( result.handled )
+    if ( output.handled )
     {
       event->accept ();
       return;
@@ -348,10 +361,39 @@ namespace Qadra::Ui
 
   void Canvas::keyPressEvent ( QKeyEvent *event )
   {
-    if ( event->key () == Qt::Key_Escape &&
-         m_toolManager.activeToolKind () != Tool::ToolKind::None )
+    if ( event->key () == Qt::Key_Escape )
     {
-      emit toolSelectionRequested ( Tool::ToolKind::None );
+      const Command::Output output = m_commandManager.cancel ( makeCommandContext () );
+      applyCommandOutput ( output );
+
+      if ( output.handled )
+      {
+        event->accept ();
+        return;
+      }
+    }
+
+    if ( event->key () == Qt::Key_Backspace &&
+         ( event->modifiers () & ( Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier ) ) ==
+             0 )
+    {
+      m_commandManager.backspaceInput ();
+      emit commandViewChanged ();
+      event->accept ();
+      return;
+    }
+
+    if ( event->key () == Qt::Key_Return || event->key () == Qt::Key_Enter )
+    {
+      applyCommandOutput ( m_commandManager.submit ( makeCommandContext () ) );
+      event->accept ();
+      return;
+    }
+
+    if ( shouldRedirectCommandInput ( *event ) )
+    {
+      m_commandManager.appendInput ( event->text ().toStdString () );
+      emit commandViewChanged ();
       event->accept ();
       return;
     }

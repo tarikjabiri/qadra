@@ -20,17 +20,27 @@ namespace Qadra::Tool
     [[nodiscard]] ToolEventResult onPointerMove ( const ToolContext &context,
                                                   const ToolPointerEvent &event ) override;
 
+    [[nodiscard]] CommandResult onCommand ( const ToolContext &context,
+                                            const ToolCommand &command ) override;
+
     [[nodiscard]] ToolPreview preview ( const ToolContext &context ) const override;
+
+    [[nodiscard]] std::string prompt () const override;
 
     [[nodiscard]] ToolEventResult cancel ( const ToolContext &context ) override;
 
   private:
     [[nodiscard]] bool hasPendingStart () const noexcept;
 
-    [[nodiscard]] ToolEventResult beginLine ( const ToolPointerEvent &event );
+    [[nodiscard]] ToolEventResult applyWorldPoint ( const ToolContext &context,
+                                                    const glm::dvec2 &point );
+
+    [[nodiscard]] ToolEventResult beginLine ( const glm::dvec2 &point );
 
     [[nodiscard]] ToolEventResult commitLine ( const ToolContext &context,
-                                               const ToolPointerEvent &event );
+                                               const glm::dvec2 &point );
+
+    [[nodiscard]] std::optional<glm::dvec2> commandBasePoint () const noexcept;
 
     [[nodiscard]] ToolEventResult resetState () noexcept;
 

@@ -53,6 +53,14 @@ namespace Qadra::Tool
     return m_activeTool->onPointerRelease ( context, event );
   }
 
+  CommandResult ToolManager::handleCommand ( const ToolContext &context,
+                                             const ToolCommand &command )
+  {
+    if ( ! m_activeTool )
+      return CommandResult::rejected ( "No active tool to receive command input." );
+    return m_activeTool->onCommand ( context, command );
+  }
+
   ToolEventResult ToolManager::cancelActiveTool ( const ToolContext &context )
   {
     if ( ! m_activeTool ) return ToolEventResult::ignored ();
@@ -68,6 +76,11 @@ namespace Qadra::Tool
   {
     if ( ! m_activeTool ) return {};
     return m_activeTool->preview ( context );
+  }
+
+  std::string ToolManager::prompt () const
+  {
+    return m_activeTool ? m_activeTool->prompt () : std::string{};
   }
 
   const Tool *ToolManager::activeTool () const noexcept { return m_activeTool.get (); }

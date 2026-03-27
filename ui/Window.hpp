@@ -1,7 +1,7 @@
 #ifndef QADRA_UI_WINDOW_HPP
 #define QADRA_UI_WINDOW_HPP
 
-#include "ToolKind.hpp"
+#include "tool/ToolKind.hpp"
 
 #include <QMainWindow>
 
@@ -23,6 +23,7 @@ public:
 
 private:
   void selectTool ( Qadra::Tool::ToolKind kind );
+  void syncCommandUi ();
 
   Qadra::Ui::Canvas *m_canvas{};
   Qadra::Ui::CmdLine *m_cmdLine{};

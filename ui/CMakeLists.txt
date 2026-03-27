@@ -19,6 +19,7 @@ target_link_libraries(qadra_ui PUBLIC
   Qt6::Widgets
   Qt6::OpenGLWidgets
   qadra_cad
+  qadra_command
   qadra_core
   qadra_render
   qadra_tool

@@ -1,6 +1,7 @@
 #include "LineTool.hpp"
 
 #include "Document.hpp"
+#include "command/point/Resolver.hpp"
 
 namespace Qadra::Tool
 {
@@ -12,10 +13,7 @@ namespace Qadra::Tool
                                              const ToolPointerEvent &event )
   {
     if ( event.button != ToolPointerButton::Left ) return ToolEventResult::ignored ();
-
-    if ( ! hasPendingStart () ) return beginLine ( event );
-
-    return commitLine ( context, event );
+    return applyWorldPoint ( context, event.worldPosition );
   }
 
   ToolEventResult LineTool::onPointerMove ( const ToolContext &, const ToolPointerEvent &event )
@@ -24,6 +22,20 @@ namespace Qadra::Tool
 
     m_currentPoint = event.worldPosition;
     return ToolEventResult::repaintOnly ();
+  }
+
+  CommandResult LineTool::onCommand ( const ToolContext &context, const ToolCommand &command )
+  {
+    const Command::PointResolver resolver;
+    const Command::ResolveResult resolved =
+        resolver.resolve ( command.point, Command::ResolveContext{ commandBasePoint () } );
+
+    if ( ! resolved.ok ) return CommandResult::rejected ( resolved.message );
+
+    const ToolEventResult result = applyWorldPoint ( context, resolved.point );
+    if ( ! result.handled )
+      return CommandResult::rejected ( "Line tool could not accept the point." );
+    return result.requestRepaint ? CommandResult::handledAndRepaint () : CommandResult::handled ();
   }
 
   ToolPreview LineTool::preview ( const ToolContext & ) const
@@ -39,25 +51,38 @@ namespace Qadra::Tool
     return preview;
   }
 
+  std::string LineTool::prompt () const
+  {
+    return hasPendingStart () ? "LINE: Specify next point or press Enter to finish"
+                              : "LINE: Specify first point";
+  }
+
   ToolEventResult LineTool::cancel ( const ToolContext & ) { return resetState (); }
 
   bool LineTool::hasPendingStart () const noexcept { return m_startPoint.has_value (); }
 
-  ToolEventResult LineTool::beginLine ( const ToolPointerEvent &event )
+  ToolEventResult LineTool::applyWorldPoint ( const ToolContext &context, const glm::dvec2 &point )
   {
-    m_startPoint = event.worldPosition;
-    m_currentPoint = event.worldPosition;
+    if ( ! hasPendingStart () ) return beginLine ( point );
+    return commitLine ( context, point );
+  }
+
+  ToolEventResult LineTool::beginLine ( const glm::dvec2 &point )
+  {
+    m_startPoint = point;
+    m_currentPoint = point;
     return ToolEventResult::handledAndRepaint ();
   }
 
-  ToolEventResult LineTool::commitLine ( const ToolContext &context, const ToolPointerEvent &event )
+  ToolEventResult LineTool::commitLine ( const ToolContext &context, const glm::dvec2 &point )
   {
-    const glm::dvec2 endPoint = event.worldPosition;
-    context.document.addLine ( { *m_startPoint, endPoint } );
-    m_startPoint = endPoint;
-    m_currentPoint = endPoint;
+    context.document.addLine ( { *m_startPoint, point } );
+    m_startPoint = point;
+    m_currentPoint = point;
     return ToolEventResult::handledAndRepaint ();
   }
+
+  std::optional<glm::dvec2> LineTool::commandBasePoint () const noexcept { return m_startPoint; }
 
   ToolEventResult LineTool::resetState () noexcept
   {

@@ -19,6 +19,7 @@ qt_standard_project_setup()
 set(QADRA_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/cad
+  ${CMAKE_SOURCE_DIR}/command
   ${CMAKE_SOURCE_DIR}/core
   ${CMAKE_SOURCE_DIR}/entity
   ${CMAKE_SOURCE_DIR}/math
@@ -36,6 +37,7 @@ add_subdirectory(entity)
 add_subdirectory(spatial)
 add_subdirectory(cad)
 add_subdirectory(render)
+add_subdirectory(command)
 add_subdirectory(tool)
 add_subdirectory(ui)
 
@@ -109,6 +111,7 @@ find_program(CLANG_FORMAT clang-format)
 if(CLANG_FORMAT)
   file(GLOB SOURCES_ROOT ${CMAKE_SOURCE_DIR}/*.cpp ${CMAKE_SOURCE_DIR}/*.hpp)
   file(GLOB SOURCES_CAD ${CMAKE_SOURCE_DIR}/cad/*.cpp ${CMAKE_SOURCE_DIR}/cad/*.hpp)
+  file(GLOB_RECURSE SOURCES_COMMAND ${CMAKE_SOURCE_DIR}/command/*.cpp ${CMAKE_SOURCE_DIR}/command/*.hpp)
   file(GLOB SOURCES_CORE ${CMAKE_SOURCE_DIR}/core/*.cpp ${CMAKE_SOURCE_DIR}/core/*.hpp)
   file(GLOB SOURCES_ENTITY ${CMAKE_SOURCE_DIR}/entity/*.cpp ${CMAKE_SOURCE_DIR}/entity/*.hpp)
   file(GLOB SOURCES_GL ${CMAKE_SOURCE_DIR}/gl/*.cpp ${CMAKE_SOURCE_DIR}/gl/*.hpp)
@@ -121,6 +124,7 @@ if(CLANG_FORMAT)
   set(ALL_SOURCES
     ${SOURCES_ROOT}
     ${SOURCES_CAD}
+    ${SOURCES_COMMAND}
     ${SOURCES_CORE}
     ${SOURCES_ENTITY}
     ${SOURCES_GL}

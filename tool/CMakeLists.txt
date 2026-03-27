@@ -1,7 +1,9 @@
 add_library(qadra_tool STATIC
+  CommandResult.hpp
   LineTool.cpp
   LineTool.hpp
   Tool.hpp
+  ToolCommand.hpp
   ToolContext.hpp
   ToolEventResult.hpp
   ToolKind.hpp
@@ -17,5 +19,6 @@ target_include_directories(qadra_tool PUBLIC
 
 target_link_libraries(qadra_tool PUBLIC
   qadra_cad
+  qadra_command
   qadra_core
 )

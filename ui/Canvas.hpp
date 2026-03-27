@@ -5,9 +5,11 @@
 #include "CanvasCursorOverlay.hpp"
 #include "Document.hpp"
 #include "Renderer.hpp"
-#include "ToolContext.hpp"
-#include "ToolKind.hpp"
-#include "ToolManager.hpp"
+#include "command/Context.hpp"
+#include "command/Manager.hpp"
+#include "command/PointerEvent.hpp"
+#include "command/View.hpp"
+#include "tool/ToolKind.hpp"
 
 #include <QOpenGLWidget>
 #include <QString>
@@ -29,10 +31,20 @@ namespace Qadra::Ui
   public:
     explicit Canvas ( QWidget *parent = nullptr );
 
-    void setActiveTool ( Qadra::Tool::ToolKind kind );
+    void startCommand ( Qadra::Tool::ToolKind kind );
+
+    void cancelCommand ();
+
+    void setCommandInput ( const QString &text );
+
+    void submitCommandInput ();
+
+    [[nodiscard]] Qadra::Tool::ToolKind activeToolKind () const noexcept;
+
+    [[nodiscard]] Qadra::Command::View commandView () const;
 
   signals:
-    void toolSelectionRequested ( Qadra::Tool::ToolKind kind );
+    void commandViewChanged ();
 
   protected:
     void initializeGL () override;
@@ -58,13 +70,13 @@ namespace Qadra::Ui
   private:
     static QFunctionPointer getProcAddress ( const char *procName );
 
-    [[nodiscard]] Qadra::Tool::ToolContext makeToolContext ();
+    [[nodiscard]] Qadra::Command::Context makeCommandContext ();
 
-    void applyToolEventResult ( const Qadra::Tool::ToolEventResult &result );
+    void applyCommandOutput ( const Qadra::Command::Output &output );
 
-    [[nodiscard]] Qadra::Tool::ToolPointerEvent makeToolPointerEvent ( const QMouseEvent &event );
+    [[nodiscard]] Qadra::Command::PointerEvent makeCommandPointerEvent ( const QMouseEvent &event );
 
-    [[nodiscard]] std::vector<Qadra::Render::PreviewLine> makePreviewLines ();
+    [[nodiscard]] std::vector<Qadra::Render::PreviewLine> makePreviewLines () const;
     [[nodiscard]] CanvasCursorOverlay::State makeCursorOverlayState () const;
     [[nodiscard]] bool shouldUseCustomCursor () const noexcept;
     [[nodiscard]] bool shouldShowCursorPickbox () const noexcept;
@@ -81,7 +93,7 @@ namespace Qadra::Ui
     Core::CameraController m_cameraController{ m_camera };
 
     Cad::Document m_document;
-    Qadra::Tool::ToolManager m_toolManager;
+    Qadra::Command::Manager m_commandManager;
     std::optional<Render::Renderer> m_renderer;
     CanvasCursorOverlay m_cursorOverlay;
 

@@ -1,11 +1,15 @@
 #ifndef QADRA_TOOL_HPP
 #define QADRA_TOOL_HPP
 
+#include "CommandResult.hpp"
+#include "ToolCommand.hpp"
 #include "ToolContext.hpp"
 #include "ToolEventResult.hpp"
 #include "ToolKind.hpp"
 #include "ToolPointerEvent.hpp"
 #include "ToolPreview.hpp"
+
+#include <string>
 
 namespace Qadra::Tool
 {
@@ -45,7 +49,14 @@ namespace Qadra::Tool
       return ToolEventResult::ignored ();
     }
 
+    [[nodiscard]] virtual CommandResult onCommand ( const ToolContext &, const ToolCommand & )
+    {
+      return CommandResult::ignored ();
+    }
+
     [[nodiscard]] virtual ToolPreview preview ( const ToolContext & ) const { return {}; }
+
+    [[nodiscard]] virtual std::string prompt () const { return {}; }
 
     [[nodiscard]] virtual ToolEventResult cancel ( const ToolContext &context ) = 0;
 
