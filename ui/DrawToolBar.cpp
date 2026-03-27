@@ -12,8 +12,6 @@ namespace Qadra::Ui
   {
     setObjectName ( "DrawToolBar" );
     setWindowTitle ( tr ( "Draw" ) );
-    setMovable ( false );
-    setFloatable ( false );
     setStyleSheet ( "border-bottom: none;" );
 
     setToolButtonStyle ( Qt::ToolButtonIconOnly );

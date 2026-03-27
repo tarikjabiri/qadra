@@ -14,7 +14,7 @@ Window::Window ( QWidget *parent ) : QMainWindow ( parent )
   resize ( 1200, 800 );
 
   m_drawToolBar = new Qadra::Ui::DrawToolBar ( this );
-  addToolBar ( Qt::TopToolBarArea, m_drawToolBar );
+  addToolBar ( Qt::LeftToolBarArea, m_drawToolBar );
 
   m_canvas = new Qadra::Ui::Canvas ( this );
   setCentralWidget ( m_canvas );
