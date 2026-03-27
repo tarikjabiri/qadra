@@ -1,7 +1,6 @@
 #include "Command.hpp"
 
 #include "Document.hpp"
-#include "math/Arc.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -95,8 +94,7 @@ namespace Qadra::Command
       return preview;
     }
 
-    const auto arc = Math::Arc::fromThreePoints ( *m_state.startPoint, *m_state.throughPoint,
-                                                  *m_state.previewPoint );
+    const auto arc = buildArc ( *m_state.previewPoint );
     if ( arc.has_value () )
     {
       preview.arcs.push_back ( PreviewArc{
@@ -162,8 +160,7 @@ namespace Qadra::Command
   Output ArcCommand::commitArc ( const Context &context, const glm::dvec2 &point,
                                  const std::string_view sourceText )
   {
-    const auto arc =
-        Math::Arc::fromThreePoints ( *m_state.startPoint, *m_state.throughPoint, point );
+    const auto arc = buildArc ( point );
 
     if ( ! arc.has_value () )
     {
@@ -186,6 +183,14 @@ namespace Qadra::Command
         HistoryEntry::info ( "End point: " + describePoint ( point, sourceText ) ) );
     output.addHistory ( HistoryEntry::info ( "ARC finished" ) );
     return output;
+  }
+
+  std::optional<Math::Arc> ArcCommand::buildArc ( const glm::dvec2 &endPoint ) const
+  {
+    if ( ! m_state.startPoint.has_value () || ! m_state.throughPoint.has_value () )
+      return std::nullopt;
+
+    return m_arcBuilder.fromThreePoints ( *m_state.startPoint, *m_state.throughPoint, endPoint );
   }
 
   std::string ArcCommand::describePoint ( const glm::dvec2 &point,

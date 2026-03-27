@@ -30,4 +30,5 @@ target_include_directories(qadra_command PUBLIC
 target_link_libraries(qadra_command PUBLIC
   glm
   qadra_cad
+  qadra_kernel
 )

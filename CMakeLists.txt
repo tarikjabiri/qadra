@@ -22,6 +22,7 @@ set(QADRA_INCLUDE_DIRS
   ${CMAKE_SOURCE_DIR}/command
   ${CMAKE_SOURCE_DIR}/core
   ${CMAKE_SOURCE_DIR}/entity
+  ${CMAKE_SOURCE_DIR}/kernel
   ${CMAKE_SOURCE_DIR}/math
   ${CMAKE_SOURCE_DIR}/render
   ${CMAKE_SOURCE_DIR}/spatial
@@ -36,6 +37,7 @@ add_subdirectory(core)
 add_subdirectory(entity)
 add_subdirectory(spatial)
 add_subdirectory(cad)
+add_subdirectory(kernel)
 add_subdirectory(render)
 add_subdirectory(command)
 add_subdirectory(tool)
@@ -95,15 +97,15 @@ add_custom_target(copy_shaders ALL
 )
 add_dependencies(qadra copy_shaders)
 
-install(TARGETS qadra
-        BUNDLE DESTINATION .
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
 qt_generate_deploy_app_script(
         TARGET qadra
         OUTPUT_SCRIPT deploy_script
         NO_UNSUPPORTED_PLATFORM_ERROR
+)
+
+install(TARGETS qadra
+        BUNDLE DESTINATION .
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 install(SCRIPT ${deploy_script})
 
@@ -115,6 +117,7 @@ if(CLANG_FORMAT)
   file(GLOB SOURCES_CORE ${CMAKE_SOURCE_DIR}/core/*.cpp ${CMAKE_SOURCE_DIR}/core/*.hpp)
   file(GLOB SOURCES_ENTITY ${CMAKE_SOURCE_DIR}/entity/*.cpp ${CMAKE_SOURCE_DIR}/entity/*.hpp)
   file(GLOB SOURCES_GL ${CMAKE_SOURCE_DIR}/gl/*.cpp ${CMAKE_SOURCE_DIR}/gl/*.hpp)
+  file(GLOB_RECURSE SOURCES_KERNEL ${CMAKE_SOURCE_DIR}/kernel/*.cpp ${CMAKE_SOURCE_DIR}/kernel/*.hpp)
   file(GLOB SOURCES_MATH ${CMAKE_SOURCE_DIR}/math/*.cpp ${CMAKE_SOURCE_DIR}/math/*.hpp)
   file(GLOB SOURCES_RENDER ${CMAKE_SOURCE_DIR}/render/*.cpp ${CMAKE_SOURCE_DIR}/render/*.hpp)
   file(GLOB SOURCES_SPATIAL ${CMAKE_SOURCE_DIR}/spatial/*.cpp ${CMAKE_SOURCE_DIR}/spatial/*.hpp)
@@ -128,6 +131,7 @@ if(CLANG_FORMAT)
     ${SOURCES_CORE}
     ${SOURCES_ENTITY}
     ${SOURCES_GL}
+    ${SOURCES_KERNEL}
     ${SOURCES_MATH}
     ${SOURCES_RENDER}
     ${SOURCES_SPATIAL}

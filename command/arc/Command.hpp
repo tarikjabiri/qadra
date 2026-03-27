@@ -5,6 +5,7 @@
 #include "command/SessionCommand.hpp"
 #include "command/point/Parser.hpp"
 #include "command/point/Resolver.hpp"
+#include "kernel/ArcBuilder.hpp"
 
 #include <optional>
 
@@ -43,12 +44,15 @@ namespace Qadra::Command
     [[nodiscard]] Output commitArc ( const Context &context, const glm::dvec2 &point,
                                      std::string_view sourceText );
 
+    [[nodiscard]] std::optional<Math::Arc> buildArc ( const glm::dvec2 &endPoint ) const;
+
     [[nodiscard]] static std::string describePoint ( const glm::dvec2 &point,
                                                      std::string_view sourceText );
 
     [[nodiscard]] std::optional<glm::dvec2> basePoint () const noexcept;
 
     ArcState m_state;
+    Kernel::ArcBuilder m_arcBuilder;
     PointParser m_pointParser;
     PointResolver m_pointResolver;
   };
