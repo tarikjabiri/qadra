@@ -6,10 +6,11 @@ namespace Qadra::Render
   {
     m_grid.init ();
     m_scene.init ();
+    m_preview.init ();
   }
 
   void Renderer::render ( const Cad::Document &document, const Core::Camera &camera,
-                          Core::Font &font )
+                          Core::Font &font, const std::span<const PreviewLine> previewLines )
   {
     glEnable ( GL_BLEND );
     glBlendFunc ( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -22,9 +23,11 @@ namespace Qadra::Render
     m_grid.render ( camera );
 
     m_scene.sync ( document, font );
+    m_preview.sync ( previewLines );
 
     glEnable ( GL_DEPTH_TEST );
     m_scene.draw ( camera, font );
     glDisable ( GL_DEPTH_TEST );
+    m_preview.draw ( camera );
   }
 } // namespace Qadra::Render

@@ -64,5 +64,11 @@ namespace Qadra::Tool
     return m_activeTool ? m_activeTool->kind () : ToolKind::None;
   }
 
+  ToolPreview ToolManager::preview ( const ToolContext &context ) const
+  {
+    if ( ! m_activeTool ) return {};
+    return m_activeTool->preview ( context );
+  }
+
   const Tool *ToolManager::activeTool () const noexcept { return m_activeTool.get (); }
 } // namespace Qadra::Tool

@@ -4,7 +4,10 @@
 #include "Camera.hpp"
 #include "Document.hpp"
 #include "GridPass.hpp"
+#include "PreviewRenderer.hpp"
 #include "RenderScene.hpp"
+
+#include <span>
 
 namespace Qadra::Render
 {
@@ -12,11 +15,13 @@ namespace Qadra::Render
   {
   public:
     void init ();
-    void render ( const Cad::Document &document, const Core::Camera &camera, Core::Font &font );
+    void render ( const Cad::Document &document, const Core::Camera &camera, Core::Font &font,
+                  std::span<const PreviewLine> previewLines = {} );
 
   private:
     GridPass m_grid;
     RenderScene m_scene;
+    PreviewRenderer m_preview;
   };
 } // namespace Qadra::Render
 

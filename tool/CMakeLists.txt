@@ -8,6 +8,7 @@ add_library(qadra_tool STATIC
   ToolManager.cpp
   ToolManager.hpp
   ToolPointerEvent.hpp
+  ToolPreview.hpp
 )
 
 target_include_directories(qadra_tool PUBLIC

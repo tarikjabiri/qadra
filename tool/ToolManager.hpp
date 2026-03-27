@@ -4,6 +4,7 @@
 #include "ToolEventResult.hpp"
 #include "ToolKind.hpp"
 #include "ToolPointerEvent.hpp"
+#include "ToolPreview.hpp"
 
 #include <memory>
 
@@ -42,6 +43,8 @@ namespace Qadra::Tool
     [[nodiscard]] ToolKind activeToolKind () const noexcept;
 
     [[nodiscard]] const Tool *activeTool () const noexcept;
+
+    [[nodiscard]] ToolPreview preview ( const ToolContext &context ) const;
 
   private:
     std::unique_ptr<Tool> m_activeTool;

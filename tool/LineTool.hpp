@@ -17,6 +17,11 @@ namespace Qadra::Tool
     [[nodiscard]] ToolEventResult onPointerPress ( const ToolContext &context,
                                                    const ToolPointerEvent &event ) override;
 
+    [[nodiscard]] ToolEventResult onPointerMove ( const ToolContext &context,
+                                                  const ToolPointerEvent &event ) override;
+
+    [[nodiscard]] ToolPreview preview ( const ToolContext &context ) const override;
+
     [[nodiscard]] ToolEventResult cancel ( const ToolContext &context ) override;
 
   private:
@@ -30,6 +35,7 @@ namespace Qadra::Tool
     [[nodiscard]] ToolEventResult resetState () noexcept;
 
     std::optional<glm::dvec2> m_startPoint;
+    std::optional<glm::dvec2> m_currentPoint;
   };
 } // namespace Qadra::Tool
 

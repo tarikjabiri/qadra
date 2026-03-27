@@ -11,6 +11,7 @@
 #include <QOpenGLWidget>
 #include <QString>
 #include <optional>
+#include <vector>
 
 class QMouseEvent;
 class QWheelEvent;
@@ -49,6 +50,8 @@ namespace Qadra::Ui
     void applyToolEventResult ( const Qadra::Tool::ToolEventResult &result );
 
     [[nodiscard]] Qadra::Tool::ToolPointerEvent makeToolPointerEvent ( const QMouseEvent &event );
+
+    [[nodiscard]] std::vector<Qadra::Render::PreviewLine> makePreviewLines ();
 
     void updateCameraViewport ();
 

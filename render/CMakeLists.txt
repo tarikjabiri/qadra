@@ -3,6 +3,8 @@ add_library(qadra_render STATIC
   GridPass.hpp
   LinePass.cpp
   LinePass.hpp
+  PreviewRenderer.cpp
+  PreviewRenderer.hpp
   RenderScene.cpp
   RenderScene.hpp
   RenderPass.cpp

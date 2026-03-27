@@ -5,6 +5,7 @@
 #include "ToolEventResult.hpp"
 #include "ToolKind.hpp"
 #include "ToolPointerEvent.hpp"
+#include "ToolPreview.hpp"
 
 namespace Qadra::Tool
 {
@@ -43,6 +44,8 @@ namespace Qadra::Tool
     {
       return ToolEventResult::ignored ();
     }
+
+    [[nodiscard]] virtual ToolPreview preview ( const ToolContext & ) const { return {}; }
 
     [[nodiscard]] virtual ToolEventResult cancel ( const ToolContext &context ) = 0;
 

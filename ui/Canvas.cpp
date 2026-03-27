@@ -2,6 +2,7 @@
 
 #include "LineTool.hpp"
 #include "Tool.hpp"
+#include "ToolPreview.hpp"
 
 #include <QCursor>
 #include <QFile>
@@ -118,7 +119,8 @@ namespace Qadra::Ui
 
     updateCameraViewport ();
 
-    m_renderer->render ( m_document, m_camera, *m_font );
+    const auto previewLines = makePreviewLines ();
+    m_renderer->render ( m_document, m_camera, *m_font, previewLines );
   }
 
   void Canvas::resizeGL ( const int, const int ) { updateCameraViewport (); }
@@ -153,6 +155,24 @@ namespace Qadra::Ui
     toolEvent.button = toToolPointerButton ( event.button () );
     toolEvent.modifiers = toToolModifiers ( event.modifiers () );
     return toolEvent;
+  }
+
+  std::vector<Render::PreviewLine> Canvas::makePreviewLines ()
+  {
+    const Tool::ToolPreview preview = m_toolManager.preview ( makeToolContext () );
+    std::vector<Render::PreviewLine> lines;
+    lines.reserve ( preview.lines.size () );
+
+    for ( const auto &line : preview.lines )
+    {
+      lines.push_back ( Render::PreviewLine{
+          .start = line.start,
+          .end = line.end,
+          .color = line.color,
+      } );
+    }
+
+    return lines;
   }
 
   void Canvas::updateCameraViewport ()
