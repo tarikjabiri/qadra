@@ -97,11 +97,39 @@ add_custom_target(copy_shaders ALL
 )
 add_dependencies(qadra copy_shaders)
 
+if(WIN32)
+  add_custom_command(TARGET qadra POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          $<TARGET_RUNTIME_DLLS:qadra>
+          $<TARGET_FILE_DIR:qadra>
+          COMMAND_EXPAND_LISTS
+  )
+
+  add_custom_command(TARGET qadra POST_BUILD
+          COMMAND ${CMAKE_COMMAND}
+          -Dqadra_executable=$<TARGET_FILE:qadra>
+          -Dqadra_destination=$<TARGET_FILE_DIR:qadra>
+          -Dqadra_occt_root=${OpenCASCADE_INSTALL_PREFIX}
+          -P ${CMAKE_SOURCE_DIR}/cmake/CopyOcctRuntimeDeps.cmake
+          COMMAND_EXPAND_LISTS
+  )
+endif()
+
 qt_generate_deploy_app_script(
         TARGET qadra
         OUTPUT_SCRIPT deploy_script
         NO_UNSUPPORTED_PLATFORM_ERROR
 )
+
+if(WIN32)
+  add_custom_command(TARGET qadra POST_BUILD
+          COMMAND ${CMAKE_COMMAND}
+          -DQT_DEPLOY_PREFIX=$<TARGET_FILE_DIR:qadra>
+          -DQT_DEPLOY_BIN_DIR=.
+          -P ${deploy_script}
+          COMMAND_EXPAND_LISTS
+  )
+endif()
 
 install(TARGETS qadra
         BUNDLE DESTINATION .
