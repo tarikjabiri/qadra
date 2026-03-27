@@ -1,5 +1,8 @@
 # folders
-.idea
-.vs
+.idea/
+.vs/
 
-*build*
+# build directories
+/build/
+build/
+cmake-build-*/
