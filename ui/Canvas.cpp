@@ -209,6 +209,7 @@ namespace Qadra::Ui
           .start = line.start,
           .end = line.end,
           .color = line.color,
+          .style = static_cast<Render::PreviewLineStyle> ( line.style ),
       } );
     }
 

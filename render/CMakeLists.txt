@@ -3,6 +3,8 @@ add_library(qadra_render STATIC
   ArcInstanceBuilder.hpp
   ArcPass.cpp
   ArcPass.hpp
+  CircleInstanceBuilder.cpp
+  CircleInstanceBuilder.hpp
   EllipseInstanceBuilder.cpp
   EllipseInstanceBuilder.hpp
   EllipsePass.cpp

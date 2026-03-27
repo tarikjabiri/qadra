@@ -1,6 +1,7 @@
 #include "RenderScene.hpp"
 
 #include "ArcInstanceBuilder.hpp"
+#include "CircleInstanceBuilder.hpp"
 #include "EllipseInstanceBuilder.hpp"
 
 #include <algorithm>
@@ -71,8 +72,8 @@ namespace Qadra::Render
     m_arcPass.renderRanges ( camera, m_mainArcBatch.buffer (), m_visibleMainArcs.firsts (),
                              m_visibleMainArcs.counts (), m_renderKeyScale );
     m_ellipsePass.renderRanges ( camera, m_mainEllipseBatch.buffer (),
-                                 m_visibleMainEllipses.firsts (),
-                                 m_visibleMainEllipses.counts (), m_renderKeyScale );
+                                 m_visibleMainEllipses.firsts (), m_visibleMainEllipses.counts (),
+                                 m_renderKeyScale );
     m_linePass.renderRanges ( camera, m_mainLineBatch.buffer (), m_visibleMainLines.firsts (),
                               m_visibleMainLines.counts (), m_renderKeyScale );
     m_arcPass.renderRanges ( camera, m_overlayArcBatch.buffer (), m_visibleOverlayArcs.firsts (),
@@ -359,6 +360,13 @@ namespace Qadra::Render
       {
         const auto &arc = static_cast<const Entity::Arc &> ( entity );
         geometry.arcInstances.push_back ( buildArcInstance ( arc.curve (), color, renderKey ) );
+        break;
+      }
+      case Entity::EntityType::Circle:
+      {
+        const auto &circle = static_cast<const Entity::Circle &> ( entity );
+        geometry.ellipseInstances.push_back (
+            buildCircleInstance ( circle.curve (), color, renderKey ) );
         break;
       }
       case Entity::EntityType::Ellipse:

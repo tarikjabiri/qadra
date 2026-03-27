@@ -2,6 +2,7 @@
 #define QADRA_DOCUMENT_HPP
 
 #include "Arc.hpp"
+#include "Circle.hpp"
 #include "DocumentChange.hpp"
 #include "Ellipse.hpp"
 #include "Entity.hpp"
@@ -27,6 +28,8 @@ namespace Qadra::Cad
     Core::Handle addLine ( const Entity::LineRecord &record );
 
     Core::Handle addArc ( const Entity::ArcRecord &record );
+
+    Core::Handle addCircle ( const Entity::CircleRecord &record );
 
     Core::Handle addEllipse ( const Entity::EllipseRecord &record );
 

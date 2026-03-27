@@ -1,6 +1,7 @@
 #include "Registry.hpp"
 
 #include "arc/Command.hpp"
+#include "circle/Command.hpp"
 #include "ellipse/Command.hpp"
 #include "line/Command.hpp"
 
@@ -43,6 +44,8 @@ namespace Qadra::Command
         return std::make_unique<LineCommand> ();
       case Tool::ToolKind::Arc:
         return std::make_unique<ArcCommand> ();
+      case Tool::ToolKind::Circle:
+        return std::make_unique<CircleCommand> ();
       case Tool::ToolKind::Ellipse:
         return std::make_unique<EllipseCommand> ();
 
@@ -58,6 +61,7 @@ namespace Qadra::Command
   {
     const std::string normalized = toLower ( trim ( text ) );
     if ( normalized == "arc" || normalized == "a" ) return Tool::ToolKind::Arc;
+    if ( normalized == "circle" || normalized == "ci" ) return Tool::ToolKind::Circle;
     if ( normalized == "ellipse" || normalized == "el" ) return Tool::ToolKind::Ellipse;
     if ( normalized == "line" || normalized == "l" ) return Tool::ToolKind::Line;
     return std::nullopt;

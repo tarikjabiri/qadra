@@ -2,6 +2,9 @@ add_library(qadra_command STATIC
   arc/Command.cpp
   arc/Command.hpp
   arc/State.hpp
+  circle/Command.cpp
+  circle/Command.hpp
+  circle/State.hpp
   Context.hpp
   ellipse/Command.cpp
   ellipse/Command.hpp

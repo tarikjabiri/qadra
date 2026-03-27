@@ -4,6 +4,48 @@
 #include "EllipseInstanceBuilder.hpp"
 
 #include <array>
+#include <cmath>
+
+namespace
+{
+  constexpr double kDashPixels = 14.0;
+  constexpr double kGapPixels = 9.0;
+  constexpr double kLineEpsilon = 1e-9;
+
+  void appendSolidLine ( std::vector<Qadra::Render::LinePass::Vertex> &vertices,
+                         const Qadra::Render::PreviewLine &line )
+  {
+    vertices.push_back ( { line.start, line.color, 0 } );
+    vertices.push_back ( { line.end, line.color, 0 } );
+  }
+
+  void appendDashedLine ( std::vector<Qadra::Render::LinePass::Vertex> &vertices,
+                          const Qadra::Render::PreviewLine &line, const double pixelSizeWorld )
+  {
+    const glm::dvec2 delta = line.end - line.start;
+    const double length = glm::length ( delta );
+    if ( length <= kLineEpsilon ) return;
+
+    const glm::dvec2 direction = delta / length;
+    const double dashWorld = kDashPixels * pixelSizeWorld;
+    const double gapWorld = kGapPixels * pixelSizeWorld;
+    const double stepWorld = dashWorld + gapWorld;
+
+    if ( dashWorld <= kLineEpsilon || stepWorld <= kLineEpsilon )
+    {
+      appendSolidLine ( vertices, line );
+      return;
+    }
+
+    for ( double offset = 0.0; offset < length; offset += stepWorld )
+    {
+      const double dashStart = offset;
+      const double dashEnd = std::min ( offset + dashWorld, length );
+      vertices.push_back ( { line.start + direction * dashStart, line.color, 0 } );
+      vertices.push_back ( { line.start + direction * dashEnd, line.color, 0 } );
+    }
+  }
+} // namespace
 
 namespace Qadra::Render
 {
@@ -14,15 +56,22 @@ namespace Qadra::Render
     m_ellipsePass.init ();
   }
 
-  void PreviewRenderer::sync ( const PreviewScene &preview )
+  void PreviewRenderer::sync ( const PreviewScene &preview, const Core::Camera &camera )
   {
     m_vertices.clear ();
-    m_vertices.reserve ( preview.lines.size () * 2 );
+    m_vertices.reserve ( preview.lines.size () * 8 );
 
     for ( const auto &line : preview.lines )
     {
-      m_vertices.push_back ( { line.start, line.color, 0 } );
-      m_vertices.push_back ( { line.end, line.color, 0 } );
+      switch ( line.style )
+      {
+        case PreviewLineStyle::Solid:
+          appendSolidLine ( m_vertices, line );
+          break;
+        case PreviewLineStyle::Dashed:
+          appendDashedLine ( m_vertices, line, camera.pixelSizeInWorld () );
+          break;
+      }
     }
 
     m_batch.upload ( std::span<const LinePass::Vertex> ( m_vertices ),

@@ -6,11 +6,18 @@
 
 namespace Qadra::Command
 {
+  enum class PreviewLineStyle
+  {
+    Solid,
+    Dashed,
+  };
+
   struct PreviewLine
   {
     glm::dvec2 start{ 0.0 };
     glm::dvec2 end{ 0.0 };
     glm::vec4 color{ 1.0f };
+    PreviewLineStyle style = PreviewLineStyle::Solid;
   };
 
   struct PreviewArc

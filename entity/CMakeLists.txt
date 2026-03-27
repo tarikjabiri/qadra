@@ -1,6 +1,8 @@
 add_library(qadra_entity STATIC
   Arc.cpp
   Arc.hpp
+  Circle.cpp
+  Circle.hpp
   Entity.cpp
   Entity.hpp
   EntityType.hpp

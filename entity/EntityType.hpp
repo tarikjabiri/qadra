@@ -8,6 +8,7 @@ namespace Qadra::Entity
   {
     Line,
     Arc,
+    Circle,
     Ellipse,
     Text,
   };

@@ -1,7 +1,9 @@
 add_library(qadra_kernel STATIC
   ArcBuilder.hpp
+  CircleBuilder.hpp
   EllipseBuilder.hpp
   occt/ArcBuilder.cpp
+  occt/CircleBuilder.cpp
   occt/EllipseBuilder.cpp
 )
 

@@ -23,7 +23,7 @@ namespace Qadra::Render
     m_grid.render ( camera );
 
     m_scene.sync ( document, font );
-    m_preview.sync ( preview );
+    m_preview.sync ( preview, camera );
 
     glEnable ( GL_DEPTH_TEST );
     m_scene.draw ( camera, font );

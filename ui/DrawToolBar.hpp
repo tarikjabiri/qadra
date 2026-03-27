@@ -30,6 +30,7 @@ namespace Qadra::Ui
     QActionGroup *m_actionGroup{};
     QAction *m_lineAction{};
     QAction *m_arcAction{};
+    QAction *m_circleAction{};
     QAction *m_ellipseAction{};
     QAction *m_textAction{};
   };
