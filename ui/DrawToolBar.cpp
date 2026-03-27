@@ -45,7 +45,7 @@ namespace Qadra::Ui
     m_polylineAction->setEnabled ( true );
     m_circleAction->setEnabled ( true );
     m_ellipseAction->setEnabled ( true );
-    m_textAction->setEnabled ( false );
+    m_textAction->setEnabled ( true );
 
     auto bindAction = [this] ( QAction *action, const Tool::ToolKind kind )
     {

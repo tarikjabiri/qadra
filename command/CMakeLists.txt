@@ -29,6 +29,9 @@ add_library(qadra_command STATIC
   Registry.cpp
   Registry.hpp
   SessionCommand.hpp
+  text/Command.cpp
+  text/Command.hpp
+  text/State.hpp
   View.hpp
 )
 
