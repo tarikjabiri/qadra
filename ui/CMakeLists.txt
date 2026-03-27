@@ -5,6 +5,8 @@ qt_add_library(qadra_ui STATIC
   CanvasCursorOverlay.hpp
   CmdLine.cpp
   CmdLine.hpp
+  DrawMenu.cpp
+  DrawMenu.hpp
   DrawToolBar.cpp
   DrawToolBar.hpp
   Window.cpp

@@ -9,6 +9,7 @@ namespace Qadra::Ui
 {
   class Canvas;
   class CmdLine;
+  class DrawMenu;
   class DrawToolBar;
 } // namespace Qadra::Ui
 
@@ -27,6 +28,7 @@ private:
 
   Qadra::Ui::Canvas *m_canvas{};
   Qadra::Ui::CmdLine *m_cmdLine{};
+  Qadra::Ui::DrawMenu *m_drawMenu{};
   Qadra::Ui::DrawToolBar *m_drawToolBar{};
 };
 

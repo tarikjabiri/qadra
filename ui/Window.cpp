@@ -2,9 +2,11 @@
 
 #include "Canvas.hpp"
 #include "CmdLine.hpp"
+#include "DrawMenu.hpp"
 #include "DrawToolBar.hpp"
 
 #include <QIcon>
+#include <QMenuBar>
 #include <QStatusBar>
 
 Window::Window ( QWidget *parent ) : QMainWindow ( parent )
@@ -12,6 +14,9 @@ Window::Window ( QWidget *parent ) : QMainWindow ( parent )
   setWindowTitle ( "Qadra" );
   setWindowIcon ( QIcon ( ":/icons/qadra-icon.svg" ) );
   resize ( 1200, 800 );
+
+  m_drawMenu = new Qadra::Ui::DrawMenu ( this );
+  menuBar ()->addMenu ( m_drawMenu );
 
   m_drawToolBar = new Qadra::Ui::DrawToolBar ( this );
   addToolBar ( Qt::LeftToolBarArea, m_drawToolBar );
@@ -22,6 +27,7 @@ Window::Window ( QWidget *parent ) : QMainWindow ( parent )
   m_cmdLine = new Qadra::Ui::CmdLine ( this );
   addDockWidget ( Qt::BottomDockWidgetArea, m_cmdLine );
 
+  connect ( m_drawMenu, &Qadra::Ui::DrawMenu::toolSelected, this, &Window::selectTool );
   connect ( m_drawToolBar, &Qadra::Ui::DrawToolBar::toolSelected, this, &Window::selectTool );
   connect ( m_canvas, &Qadra::Ui::Canvas::commandViewChanged, this, &Window::syncCommandUi );
   connect ( m_cmdLine, &Qadra::Ui::CmdLine::inputEdited, m_canvas,
@@ -49,6 +55,7 @@ void Window::selectTool ( const Qadra::Tool::ToolKind kind )
 
 void Window::syncCommandUi ()
 {
+  m_drawMenu->setSelectedToolKind ( m_canvas->activeToolKind () );
   m_drawToolBar->setSelectedToolKind ( m_canvas->activeToolKind () );
   m_cmdLine->render ( m_canvas->commandView () );
 }
