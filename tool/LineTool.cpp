@@ -52,9 +52,10 @@ namespace Qadra::Tool
 
   ToolEventResult LineTool::commitLine ( const ToolContext &context, const ToolPointerEvent &event )
   {
-    context.document.addLine ( { *m_startPoint, event.worldPosition } );
-    m_startPoint.reset ();
-    m_currentPoint.reset ();
+    const glm::dvec2 endPoint = event.worldPosition;
+    context.document.addLine ( { *m_startPoint, endPoint } );
+    m_startPoint = endPoint;
+    m_currentPoint = endPoint;
     return ToolEventResult::handledAndRepaint ();
   }
 
