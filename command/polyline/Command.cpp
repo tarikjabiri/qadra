@@ -96,10 +96,10 @@ namespace Qadra::Command
       if ( m_state.mode == PolylineMode::Arc )
       {
         Output output = Output::handledOnly ( true );
-        output.addHistory ( HistoryEntry::error (
-            m_state.hasArcThroughPoint ()
-                ? "Specify endpoint of arc or switch to [Line] before Close."
-                : "Switch to [Line] before Close." ) );
+        output.addHistory (
+            HistoryEntry::error ( m_state.hasArcThroughPoint ()
+                                      ? "Specify endpoint of arc or switch to [Line] before Close."
+                                      : "Switch to [Line] before Close." ) );
         return output;
       }
 
