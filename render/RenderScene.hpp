@@ -3,6 +3,7 @@
 
 #include "ArcPass.hpp"
 #include "Document.hpp"
+#include "EllipsePass.hpp"
 #include "LinePass.hpp"
 #include "TextPass.hpp"
 #include "VertexBatch.hpp"
@@ -24,10 +25,12 @@ namespace Qadra::Render
   private:
     static constexpr std::size_t kMaxEntitiesPerPage = 512;
     static constexpr std::size_t kMaxArcInstancesPerPage = 2048;
+    static constexpr std::size_t kMaxEllipseInstancesPerPage = 2048;
     static constexpr std::size_t kMaxLineVerticesPerPage = 4096;
     static constexpr std::size_t kMaxTextInstancesPerPage = 4096;
     static constexpr std::size_t kMaxOverlayEntities = 512;
     static constexpr std::size_t kMaxOverlayArcInstances = 16384;
+    static constexpr std::size_t kMaxOverlayEllipseInstances = 16384;
     static constexpr std::size_t kMaxOverlayLineVertices = 16384;
     static constexpr std::size_t kMaxOverlayTextInstances = 32768;
 
@@ -42,6 +45,8 @@ namespace Qadra::Render
       Math::BoxAABB bbox;
       GLint arcInstanceFirst = 0;
       GLsizei arcInstanceCount = 0;
+      GLint ellipseInstanceFirst = 0;
+      GLsizei ellipseInstanceCount = 0;
       GLint lineFirst = 0;
       GLsizei lineCount = 0;
       GLuint textInstanceFirst = 0;
@@ -54,6 +59,8 @@ namespace Qadra::Render
       Math::BoxAABB bbox;
       GLint arcInstanceFirst = 0;
       GLsizei arcInstanceCount = 0;
+      GLint ellipseInstanceFirst = 0;
+      GLsizei ellipseInstanceCount = 0;
       GLint lineFirst = 0;
       GLsizei lineCount = 0;
       GLuint textInstanceFirst = 0;
@@ -63,6 +70,7 @@ namespace Qadra::Render
     struct GeometrySpan
     {
       std::vector<ArcPass::Instance> arcInstances;
+      std::vector<EllipsePass::Instance> ellipseInstances;
       std::vector<LinePass::Vertex> lineVertices;
       std::vector<TextPass::Instance> textInstances;
       Math::BoxAABB bbox;
@@ -88,23 +96,29 @@ namespace Qadra::Render
     PlacementMap m_placements;
 
     std::vector<ArcPass::Instance> m_mainArcInstances;
+    std::vector<EllipsePass::Instance> m_mainEllipseInstances;
     std::vector<LinePass::Vertex> m_mainLineVertices;
     std::vector<TextPass::Instance> m_mainTextInstances;
     VertexBatch<ArcPass::Instance> m_mainArcBatch;
+    VertexBatch<EllipsePass::Instance> m_mainEllipseBatch;
     VertexBatch<LinePass::Vertex> m_mainLineBatch;
     VertexBatch<TextPass::Instance> m_mainTextBatch;
 
     std::vector<ArcPass::Instance> m_overlayArcInstances;
+    std::vector<EllipsePass::Instance> m_overlayEllipseInstances;
     std::vector<LinePass::Vertex> m_overlayLineVertices;
     std::vector<TextPass::Instance> m_overlayTextInstances;
     VertexBatch<ArcPass::Instance> m_overlayArcBatch;
+    VertexBatch<EllipsePass::Instance> m_overlayEllipseBatch;
     VertexBatch<LinePass::Vertex> m_overlayLineBatch;
     VertexBatch<TextPass::Instance> m_overlayTextBatch;
     std::vector<Placement> m_overlayPlacements;
 
     mutable VisibleDrawList m_visibleMainArcs;
+    mutable VisibleDrawList m_visibleMainEllipses;
     mutable VisibleDrawList m_visibleMainLines;
     mutable VisibleDrawList m_visibleOverlayArcs;
+    mutable VisibleDrawList m_visibleOverlayEllipses;
     mutable VisibleDrawList m_visibleOverlayLines;
     mutable std::vector<TextPass::DrawCommand> m_visibleMainTextCommands;
     mutable std::vector<TextPass::DrawCommand> m_visibleOverlayTextCommands;
@@ -116,6 +130,7 @@ namespace Qadra::Render
     float m_renderKeyScale = 1.0f;
 
     ArcPass m_arcPass;
+    EllipsePass m_ellipsePass;
     LinePass m_linePass;
     TextPass m_textPass;
   };

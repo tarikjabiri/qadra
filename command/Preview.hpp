@@ -22,12 +22,25 @@ namespace Qadra::Command
     glm::vec4 color{ 1.0f };
   };
 
+  struct PreviewEllipse
+  {
+    glm::dvec2 center{ 0.0 };
+    glm::dvec2 majorDirection{ 1.0, 0.0 };
+    double majorRadius = 0.0;
+    double minorRadius = 0.0;
+    glm::vec4 color{ 1.0f };
+  };
+
   struct Preview
   {
     std::vector<PreviewLine> lines;
     std::vector<PreviewArc> arcs;
+    std::vector<PreviewEllipse> ellipses;
 
-    [[nodiscard]] bool empty () const noexcept { return lines.empty () && arcs.empty (); }
+    [[nodiscard]] bool empty () const noexcept
+    {
+      return lines.empty () && arcs.empty () && ellipses.empty ();
+    }
   };
 } // namespace Qadra::Command
 

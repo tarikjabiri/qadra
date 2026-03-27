@@ -3,6 +3,9 @@ add_library(qadra_command STATIC
   arc/Command.hpp
   arc/State.hpp
   Context.hpp
+  ellipse/Command.cpp
+  ellipse/Command.hpp
+  ellipse/State.hpp
   HistoryEntry.hpp
   line/Command.cpp
   line/Command.hpp

@@ -3,6 +3,7 @@
 
 #include "Arc.hpp"
 #include "DocumentChange.hpp"
+#include "Ellipse.hpp"
 #include "Entity.hpp"
 #include "Font.hpp"
 #include "Handle.hpp"
@@ -26,6 +27,8 @@ namespace Qadra::Cad
     Core::Handle addLine ( const Entity::LineRecord &record );
 
     Core::Handle addArc ( const Entity::ArcRecord &record );
+
+    Core::Handle addEllipse ( const Entity::EllipseRecord &record );
 
     Core::Handle addText ( const Entity::TextRecord &record, Core::Font &font );
 

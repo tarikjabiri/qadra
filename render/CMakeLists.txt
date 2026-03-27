@@ -3,6 +3,10 @@ add_library(qadra_render STATIC
   ArcInstanceBuilder.hpp
   ArcPass.cpp
   ArcPass.hpp
+  EllipseInstanceBuilder.cpp
+  EllipseInstanceBuilder.hpp
+  EllipsePass.cpp
+  EllipsePass.hpp
   GridPass.cpp
   GridPass.hpp
   LinePass.cpp

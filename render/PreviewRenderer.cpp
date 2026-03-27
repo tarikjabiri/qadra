@@ -1,6 +1,7 @@
 #include "PreviewRenderer.hpp"
 
 #include "ArcInstanceBuilder.hpp"
+#include "EllipseInstanceBuilder.hpp"
 
 #include <array>
 
@@ -10,6 +11,7 @@ namespace Qadra::Render
   {
     m_linePass.init ();
     m_arcPass.init ();
+    m_ellipsePass.init ();
   }
 
   void PreviewRenderer::sync ( const PreviewScene &preview )
@@ -36,6 +38,19 @@ namespace Qadra::Render
 
     m_arcBatch.upload ( std::span<const ArcPass::Instance> ( m_arcInstances ),
                         GL::Buffer::Usage::DynamicDraw );
+
+    m_ellipseInstances.clear ();
+    m_ellipseInstances.reserve ( preview.ellipses.size () );
+    for ( const auto &ellipse : preview.ellipses )
+    {
+      m_ellipseInstances.push_back (
+          buildEllipseInstance ( Math::Ellipse ( ellipse.center, ellipse.majorDirection,
+                                                 ellipse.majorRadius, ellipse.minorRadius ),
+                                 ellipse.color, 0 ) );
+    }
+
+    m_ellipseBatch.upload ( std::span<const EllipsePass::Instance> ( m_ellipseInstances ),
+                            GL::Buffer::Usage::DynamicDraw );
   }
 
   void PreviewRenderer::draw ( const Core::Camera &camera ) const
@@ -52,6 +67,13 @@ namespace Qadra::Render
       const std::array<GLint, 1> firsts{ 0 };
       const std::array<GLsizei, 1> counts{ static_cast<GLsizei> ( m_arcInstances.size () ) };
       m_arcPass.renderRanges ( camera, m_arcBatch.buffer (), firsts, counts, 1.0f );
+    }
+
+    if ( ! m_ellipseInstances.empty () )
+    {
+      const std::array<GLint, 1> firsts{ 0 };
+      const std::array<GLsizei, 1> counts{ static_cast<GLsizei> ( m_ellipseInstances.size () ) };
+      m_ellipsePass.renderRanges ( camera, m_ellipseBatch.buffer (), firsts, counts, 1.0f );
     }
   }
 } // namespace Qadra::Render

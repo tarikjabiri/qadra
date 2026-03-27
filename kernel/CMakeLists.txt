@@ -1,6 +1,8 @@
 add_library(qadra_kernel STATIC
   ArcBuilder.hpp
+  EllipseBuilder.hpp
   occt/ArcBuilder.cpp
+  occt/EllipseBuilder.cpp
 )
 
 target_include_directories(qadra_kernel PUBLIC

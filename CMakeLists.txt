@@ -70,6 +70,7 @@ qt_add_resources(qadra "app_draw_assets"
         BASE "${CMAKE_SOURCE_DIR}/assets"
         FILES
         assets/draw-arc.svg
+        assets/draw-ellipse.svg
         assets/draw-line.svg
         assets/draw-text.svg
 )

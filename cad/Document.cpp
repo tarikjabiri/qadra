@@ -28,6 +28,19 @@ namespace Qadra::Cad
     return handle;
   }
 
+  Core::Handle Document::addEllipse ( const Entity::EllipseRecord &record )
+  {
+    auto handle = next ();
+    auto entity = std::make_unique<Entity::Ellipse> ( handle, ++m_renderKeySeed, record );
+    m_spatialIndex.insert ( handle, entity->bbox () );
+    m_entities.emplace ( handle, std::move ( entity ) );
+    m_dirtyFrom = std::min ( m_dirtyFrom, static_cast<std::size_t> ( m_drawOrder.size () ) );
+    m_drawOrder.append ( handle );
+    ++m_version;
+    recordChange ( DocumentChange::Kind::Added, handle );
+    return handle;
+  }
+
   Core::Handle Document::addText ( const Entity::TextRecord &record, Core::Font &font )
   {
     auto handle = next ();

@@ -5,6 +5,8 @@ add_library(qadra_math STATIC
   BoxAABB.hpp
   BoxOBB.cpp
   BoxOBB.hpp
+  Ellipse.cpp
+  Ellipse.hpp
   Grid.cpp
   Grid.hpp
 )

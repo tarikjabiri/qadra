@@ -1,6 +1,7 @@
 #include "RenderScene.hpp"
 
 #include "ArcInstanceBuilder.hpp"
+#include "EllipseInstanceBuilder.hpp"
 
 #include <algorithm>
 #include <array>
@@ -20,6 +21,7 @@ namespace Qadra::Render
   void RenderScene::init ()
   {
     m_arcPass.init ();
+    m_ellipsePass.init ();
     m_linePass.init ();
     m_textPass.init ();
     m_initialized = true;
@@ -68,10 +70,16 @@ namespace Qadra::Render
 
     m_arcPass.renderRanges ( camera, m_mainArcBatch.buffer (), m_visibleMainArcs.firsts (),
                              m_visibleMainArcs.counts (), m_renderKeyScale );
+    m_ellipsePass.renderRanges ( camera, m_mainEllipseBatch.buffer (),
+                                 m_visibleMainEllipses.firsts (),
+                                 m_visibleMainEllipses.counts (), m_renderKeyScale );
     m_linePass.renderRanges ( camera, m_mainLineBatch.buffer (), m_visibleMainLines.firsts (),
                               m_visibleMainLines.counts (), m_renderKeyScale );
     m_arcPass.renderRanges ( camera, m_overlayArcBatch.buffer (), m_visibleOverlayArcs.firsts (),
                              m_visibleOverlayArcs.counts (), m_renderKeyScale );
+    m_ellipsePass.renderRanges ( camera, m_overlayEllipseBatch.buffer (),
+                                 m_visibleOverlayEllipses.firsts (),
+                                 m_visibleOverlayEllipses.counts (), m_renderKeyScale );
     m_linePass.renderRanges ( camera, m_overlayLineBatch.buffer (), m_visibleOverlayLines.firsts (),
                               m_visibleOverlayLines.counts (), m_renderKeyScale );
 
@@ -90,6 +98,7 @@ namespace Qadra::Render
     m_pages.clear ();
     m_placements.clear ();
     m_mainArcInstances.clear ();
+    m_mainEllipseInstances.clear ();
     m_mainLineVertices.clear ();
     m_mainTextInstances.clear ();
     clearOverlay ();
@@ -100,6 +109,7 @@ namespace Qadra::Render
     bool hasCurrentPage = false;
     std::size_t entitiesInPage = 0;
     std::size_t arcInstancesInPage = 0;
+    std::size_t ellipseInstancesInPage = 0;
     std::size_t lineVerticesInPage = 0;
     std::size_t textInstancesInPage = 0;
 
@@ -109,6 +119,8 @@ namespace Qadra::Render
           .bbox = Math::BoxAABB (),
           .arcInstanceFirst = static_cast<GLint> ( m_mainArcInstances.size () ),
           .arcInstanceCount = 0,
+          .ellipseInstanceFirst = static_cast<GLint> ( m_mainEllipseInstances.size () ),
+          .ellipseInstanceCount = 0,
           .lineFirst = static_cast<GLint> ( m_mainLineVertices.size () ),
           .lineCount = 0,
           .textInstanceFirst = static_cast<GLuint> ( m_mainTextInstances.size () ),
@@ -116,6 +128,7 @@ namespace Qadra::Render
       };
       entitiesInPage = 0;
       arcInstancesInPage = 0;
+      ellipseInstancesInPage = 0;
       lineVerticesInPage = 0;
       textInstancesInPage = 0;
       hasCurrentPage = true;
@@ -126,6 +139,7 @@ namespace Qadra::Render
       if ( ! hasCurrentPage ) return;
 
       currentPage.arcInstanceCount = static_cast<GLsizei> ( arcInstancesInPage );
+      currentPage.ellipseInstanceCount = static_cast<GLsizei> ( ellipseInstancesInPage );
       currentPage.lineCount = static_cast<GLsizei> ( lineVerticesInPage );
       currentPage.textInstanceCount = static_cast<GLuint> ( textInstancesInPage );
       m_pages.push_back ( currentPage );
@@ -143,6 +157,8 @@ namespace Qadra::Render
           hasCurrentPage &&
           ( entitiesInPage >= kMaxEntitiesPerPage ||
             arcInstancesInPage + geometry.arcInstances.size () > kMaxArcInstancesPerPage ||
+            ellipseInstancesInPage + geometry.ellipseInstances.size () >
+                kMaxEllipseInstancesPerPage ||
             lineVerticesInPage + geometry.lineVertices.size () > kMaxLineVerticesPerPage ||
             textInstancesInPage + geometry.textInstances.size () > kMaxTextInstancesPerPage );
 
@@ -153,11 +169,15 @@ namespace Qadra::Render
       }
 
       const GLint arcInstanceFirst = static_cast<GLint> ( m_mainArcInstances.size () );
+      const GLint ellipseInstanceFirst = static_cast<GLint> ( m_mainEllipseInstances.size () );
       const GLint lineFirst = static_cast<GLint> ( m_mainLineVertices.size () );
       const GLuint textInstanceFirst = static_cast<GLuint> ( m_mainTextInstances.size () );
 
       m_mainArcInstances.insert ( m_mainArcInstances.end (), geometry.arcInstances.begin (),
                                   geometry.arcInstances.end () );
+      m_mainEllipseInstances.insert ( m_mainEllipseInstances.end (),
+                                      geometry.ellipseInstances.begin (),
+                                      geometry.ellipseInstances.end () );
       m_mainLineVertices.insert ( m_mainLineVertices.end (), geometry.lineVertices.begin (),
                                   geometry.lineVertices.end () );
       m_mainTextInstances.insert ( m_mainTextInstances.end (), geometry.textInstances.begin (),
@@ -165,6 +185,7 @@ namespace Qadra::Render
 
       currentPage.bbox.merge ( geometry.bbox );
       arcInstancesInPage += geometry.arcInstances.size ();
+      ellipseInstancesInPage += geometry.ellipseInstances.size ();
       lineVerticesInPage += geometry.lineVertices.size ();
       textInstancesInPage += geometry.textInstances.size ();
       ++entitiesInPage;
@@ -174,6 +195,8 @@ namespace Qadra::Render
           .bbox = geometry.bbox,
           .arcInstanceFirst = arcInstanceFirst,
           .arcInstanceCount = static_cast<GLsizei> ( geometry.arcInstances.size () ),
+          .ellipseInstanceFirst = ellipseInstanceFirst,
+          .ellipseInstanceCount = static_cast<GLsizei> ( geometry.ellipseInstances.size () ),
           .lineFirst = lineFirst,
           .lineCount = static_cast<GLsizei> ( geometry.lineVertices.size () ),
           .textInstanceFirst = textInstanceFirst,
@@ -185,6 +208,8 @@ namespace Qadra::Render
 
     m_mainArcBatch.upload ( std::span<const ArcPass::Instance> ( m_mainArcInstances ),
                             GL::Buffer::Usage::StaticDraw );
+    m_mainEllipseBatch.upload ( std::span<const EllipsePass::Instance> ( m_mainEllipseInstances ),
+                                GL::Buffer::Usage::StaticDraw );
     m_mainLineBatch.upload ( std::span<const LinePass::Vertex> ( m_mainLineVertices ),
                              GL::Buffer::Usage::StaticDraw );
     m_mainTextBatch.upload ( std::span<const TextPass::Instance> ( m_mainTextInstances ),
@@ -201,11 +226,15 @@ namespace Qadra::Render
     GeometrySpan geometry = buildGeometry ( *entity, font );
 
     const GLint arcInstanceFirst = static_cast<GLint> ( m_overlayArcInstances.size () );
+    const GLint ellipseInstanceFirst = static_cast<GLint> ( m_overlayEllipseInstances.size () );
     const GLint lineFirst = static_cast<GLint> ( m_overlayLineVertices.size () );
     const GLuint textInstanceFirst = static_cast<GLuint> ( m_overlayTextInstances.size () );
 
     m_overlayArcInstances.insert ( m_overlayArcInstances.end (), geometry.arcInstances.begin (),
                                    geometry.arcInstances.end () );
+    m_overlayEllipseInstances.insert ( m_overlayEllipseInstances.end (),
+                                       geometry.ellipseInstances.begin (),
+                                       geometry.ellipseInstances.end () );
     m_overlayLineVertices.insert ( m_overlayLineVertices.end (), geometry.lineVertices.begin (),
                                    geometry.lineVertices.end () );
     m_overlayTextInstances.insert ( m_overlayTextInstances.end (), geometry.textInstances.begin (),
@@ -213,6 +242,9 @@ namespace Qadra::Render
 
     m_overlayArcBatch.upload ( std::span<const ArcPass::Instance> ( m_overlayArcInstances ),
                                GL::Buffer::Usage::DynamicDraw );
+    m_overlayEllipseBatch.upload (
+        std::span<const EllipsePass::Instance> ( m_overlayEllipseInstances ),
+        GL::Buffer::Usage::DynamicDraw );
     m_overlayLineBatch.upload ( std::span<const LinePass::Vertex> ( m_overlayLineVertices ),
                                 GL::Buffer::Usage::DynamicDraw );
     m_overlayTextBatch.upload ( std::span<const TextPass::Instance> ( m_overlayTextInstances ),
@@ -223,6 +255,8 @@ namespace Qadra::Render
         .bbox = geometry.bbox,
         .arcInstanceFirst = arcInstanceFirst,
         .arcInstanceCount = static_cast<GLsizei> ( geometry.arcInstances.size () ),
+        .ellipseInstanceFirst = ellipseInstanceFirst,
+        .ellipseInstanceCount = static_cast<GLsizei> ( geometry.ellipseInstances.size () ),
         .lineFirst = lineFirst,
         .lineCount = static_cast<GLsizei> ( geometry.lineVertices.size () ),
         .textInstanceFirst = textInstanceFirst,
@@ -236,11 +270,15 @@ namespace Qadra::Render
   void RenderScene::clearOverlay ()
   {
     m_overlayArcInstances.clear ();
+    m_overlayEllipseInstances.clear ();
     m_overlayLineVertices.clear ();
     m_overlayTextInstances.clear ();
     m_overlayPlacements.clear ();
     m_overlayArcBatch.upload ( std::span<const ArcPass::Instance> ( m_overlayArcInstances ),
                                GL::Buffer::Usage::DynamicDraw );
+    m_overlayEllipseBatch.upload (
+        std::span<const EllipsePass::Instance> ( m_overlayEllipseInstances ),
+        GL::Buffer::Usage::DynamicDraw );
     m_overlayLineBatch.upload ( std::span<const LinePass::Vertex> ( m_overlayLineVertices ),
                                 GL::Buffer::Usage::DynamicDraw );
     m_overlayTextBatch.upload ( std::span<const TextPass::Instance> ( m_overlayTextInstances ),
@@ -250,8 +288,10 @@ namespace Qadra::Render
   void RenderScene::rebuildVisibleDrawLists ( const Core::Camera &camera ) const
   {
     m_visibleMainArcs.clear ();
+    m_visibleMainEllipses.clear ();
     m_visibleMainLines.clear ();
     m_visibleOverlayArcs.clear ();
+    m_visibleOverlayEllipses.clear ();
     m_visibleOverlayLines.clear ();
     m_visibleMainTextCommands.clear ();
     m_visibleOverlayTextCommands.clear ();
@@ -263,6 +303,7 @@ namespace Qadra::Render
       if ( ! page.bbox.intersects ( viewport ) ) continue;
 
       m_visibleMainArcs.append ( page.arcInstanceFirst, page.arcInstanceCount );
+      m_visibleMainEllipses.append ( page.ellipseInstanceFirst, page.ellipseInstanceCount );
       m_visibleMainLines.append ( page.lineFirst, page.lineCount );
       if ( page.textInstanceCount == 0 ) continue;
 
@@ -279,6 +320,8 @@ namespace Qadra::Render
       if ( ! placement.bbox.intersects ( viewport ) ) continue;
 
       m_visibleOverlayArcs.append ( placement.arcInstanceFirst, placement.arcInstanceCount );
+      m_visibleOverlayEllipses.append ( placement.ellipseInstanceFirst,
+                                        placement.ellipseInstanceCount );
       m_visibleOverlayLines.append ( placement.lineFirst, placement.lineCount );
       if ( placement.textInstanceCount == 0 ) continue;
 
@@ -316,6 +359,13 @@ namespace Qadra::Render
       {
         const auto &arc = static_cast<const Entity::Arc &> ( entity );
         geometry.arcInstances.push_back ( buildArcInstance ( arc.curve (), color, renderKey ) );
+        break;
+      }
+      case Entity::EntityType::Ellipse:
+      {
+        const auto &ellipse = static_cast<const Entity::Ellipse &> ( entity );
+        geometry.ellipseInstances.push_back (
+            buildEllipseInstance ( ellipse.curve (), color, renderKey ) );
         break;
       }
       case Entity::EntityType::Line:
@@ -377,6 +427,7 @@ namespace Qadra::Render
   {
     return m_overlayPlacements.size () > kMaxOverlayEntities ||
            m_overlayArcInstances.size () > kMaxOverlayArcInstances ||
+           m_overlayEllipseInstances.size () > kMaxOverlayEllipseInstances ||
            m_overlayLineVertices.size () > kMaxOverlayLineVertices ||
            m_overlayTextInstances.size () > kMaxOverlayTextInstances;
   }

@@ -201,6 +201,7 @@ namespace Qadra::Ui
     Render::PreviewScene renderPreview;
     renderPreview.lines.reserve ( preview.lines.size () );
     renderPreview.arcs.reserve ( preview.arcs.size () );
+    renderPreview.ellipses.reserve ( preview.ellipses.size () );
 
     for ( const auto &line : preview.lines )
     {
@@ -219,6 +220,17 @@ namespace Qadra::Ui
           .startAngle = arc.startAngle,
           .sweepAngle = arc.sweepAngle,
           .color = arc.color,
+      } );
+    }
+
+    for ( const auto &ellipse : preview.ellipses )
+    {
+      renderPreview.ellipses.push_back ( Render::PreviewEllipse{
+          .center = ellipse.center,
+          .majorDirection = ellipse.majorDirection,
+          .majorRadius = ellipse.majorRadius,
+          .minorRadius = ellipse.minorRadius,
+          .color = ellipse.color,
       } );
     }
 

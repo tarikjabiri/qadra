@@ -4,6 +4,8 @@ add_library(qadra_entity STATIC
   Entity.cpp
   Entity.hpp
   EntityType.hpp
+  Ellipse.cpp
+  Ellipse.hpp
   Line.cpp
   Line.hpp
   Text.cpp
