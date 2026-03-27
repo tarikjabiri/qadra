@@ -1,6 +1,6 @@
 #include "Command.hpp"
 
-#include "Document.hpp"
+#include "cad/history/DocumentEditor.hpp"
 #include "math/Bulge.hpp"
 
 #include <cctype>
@@ -348,7 +348,7 @@ namespace Qadra::Command
 
     if ( m_state.vertices.size () >= 2 )
     {
-      context.document.addLWPolyline ( {
+      context.editor.addLWPolyline ( {
           .vertices = m_state.vertices,
           .closed = closed,
       } );

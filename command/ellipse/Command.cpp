@@ -1,6 +1,6 @@
 #include "Command.hpp"
 
-#include "Document.hpp"
+#include "cad/history/DocumentEditor.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -173,7 +173,7 @@ namespace Qadra::Command
       return output;
     }
 
-    context.document.addEllipse ( {
+    context.editor.addEllipse ( {
         .center = ellipse->center (),
         .majorDirection = ellipse->majorDirection (),
         .majorRadius = ellipse->majorRadius (),

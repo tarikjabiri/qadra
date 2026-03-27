@@ -5,6 +5,7 @@
 #include "CanvasCursorOverlay.hpp"
 #include "Document.hpp"
 #include "Renderer.hpp"
+#include "cad/history/DocumentEditor.hpp"
 #include "command/Context.hpp"
 #include "command/Manager.hpp"
 #include "command/PointerEvent.hpp"
@@ -21,6 +22,7 @@ class QEnterEvent;
 class QEvent;
 class QKeyEvent;
 class QWheelEvent;
+class QUndoStack;
 
 namespace Qadra::Ui
 {
@@ -39,9 +41,15 @@ namespace Qadra::Ui
 
     void submitCommandInput ();
 
+    void undo ();
+
+    void redo ();
+
     [[nodiscard]] Qadra::Tool::ToolKind activeToolKind () const noexcept;
 
     [[nodiscard]] Qadra::Command::View commandView () const;
+
+    [[nodiscard]] QUndoStack *undoStack () noexcept;
 
   signals:
     void commandViewChanged ();
@@ -93,6 +101,7 @@ namespace Qadra::Ui
     Core::CameraController m_cameraController{ m_camera };
 
     Cad::Document m_document;
+    Cad::DocumentEditor m_documentEditor{ m_document };
     Qadra::Command::Manager m_commandManager;
     std::optional<Render::Renderer> m_renderer;
     CanvasCursorOverlay m_cursorOverlay;

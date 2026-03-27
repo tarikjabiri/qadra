@@ -1,6 +1,6 @@
 #include "Command.hpp"
 
-#include "Document.hpp"
+#include "cad/history/DocumentEditor.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -171,7 +171,7 @@ namespace Qadra::Command
       return output;
     }
 
-    context.document.addArc ( {
+    context.editor.addArc ( {
         .center = arc->center (),
         .radius = arc->radius (),
         .startAngle = arc->startAngle (),

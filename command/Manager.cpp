@@ -1,6 +1,7 @@
 #include "Manager.hpp"
 
 #include "SessionCommand.hpp"
+#include "cad/history/DocumentEditor.hpp"
 
 #include <cctype>
 #include <iterator>
@@ -18,6 +19,29 @@ namespace
     target.historyEntries.insert ( target.historyEntries.end (),
                                    std::make_move_iterator ( source.historyEntries.begin () ),
                                    std::make_move_iterator ( source.historyEntries.end () ) );
+  }
+
+  [[nodiscard]] QString macroTextForKind ( const Qadra::Tool::ToolKind kind )
+  {
+    switch ( kind )
+    {
+      case Qadra::Tool::ToolKind::Line:
+        return QStringLiteral ( "Line" );
+      case Qadra::Tool::ToolKind::Polyline:
+        return QStringLiteral ( "Polyline" );
+      case Qadra::Tool::ToolKind::Arc:
+        return QStringLiteral ( "Arc" );
+      case Qadra::Tool::ToolKind::Circle:
+        return QStringLiteral ( "Circle" );
+      case Qadra::Tool::ToolKind::Ellipse:
+        return QStringLiteral ( "Ellipse" );
+      case Qadra::Tool::ToolKind::Text:
+        return QStringLiteral ( "Text" );
+      case Qadra::Tool::ToolKind::None:
+        break;
+    }
+
+    return QStringLiteral ( "Command" );
   }
 } // namespace
 
@@ -65,7 +89,7 @@ namespace Qadra::Command
     {
       Output output = Output::handledOnly ( true );
       output.addHistory ( HistoryEntry::error ( "Requested command is not available yet." ) );
-      return apply ( std::move ( output ) );
+      return apply ( std::move ( output ), context );
     }
 
     Output output = Output::handledOnly ( true );
@@ -74,16 +98,18 @@ namespace Qadra::Command
     {
       mergeOutput ( output, m_activeCommand->cancel ( context ) );
       m_activeCommand.reset ();
+      context.editor.endMacro ();
     }
 
     m_input.clear ();
     m_activeCommand = std::move ( newCommand );
+    context.editor.beginMacro ( macroTextForKind ( kind ) );
     mergeOutput ( output, m_activeCommand->start ( context ) );
 
     output.handled = true;
     output.viewChanged = true;
     output.finishCommand = false;
-    return apply ( std::move ( output ) );
+    return apply ( std::move ( output ), context );
   }
 
   Output Manager::submit ( const Context &context )
@@ -99,7 +125,7 @@ namespace Qadra::Command
       output.handled = true;
       output.finishCommand = true;
       output.viewChanged = true;
-      return apply ( std::move ( output ) );
+      return apply ( std::move ( output ), context );
     }
 
     if ( isCancelAlias ( submitted ) ) return cancel ( context );
@@ -109,7 +135,7 @@ namespace Qadra::Command
       Output output = m_activeCommand->submit ( context, submitted );
       output.handled = true;
       output.viewChanged = true;
-      return apply ( std::move ( output ) );
+      return apply ( std::move ( output ), context );
     }
 
     if ( const auto commandKind = m_registry.resolveAlias ( submitted ) )
@@ -117,7 +143,7 @@ namespace Qadra::Command
 
     Output output = Output::handledOnly ( true );
     output.addHistory ( HistoryEntry::error ( "Unknown command." ) );
-    return apply ( std::move ( output ) );
+    return apply ( std::move ( output ), context );
   }
 
   Output Manager::cancel ( const Context &context )
@@ -136,25 +162,25 @@ namespace Qadra::Command
     output.handled = true;
     output.finishCommand = true;
     output.viewChanged = true;
-    return apply ( std::move ( output ) );
+    return apply ( std::move ( output ), context );
   }
 
   Output Manager::pointerPress ( const Context &context, const PointerEvent &event )
   {
     if ( ! m_activeCommand ) return Output::ignored ();
-    return apply ( m_activeCommand->pointerPress ( context, event ) );
+    return apply ( m_activeCommand->pointerPress ( context, event ), context );
   }
 
   Output Manager::pointerMove ( const Context &context, const PointerEvent &event )
   {
     if ( ! m_activeCommand ) return Output::ignored ();
-    return apply ( m_activeCommand->pointerMove ( context, event ) );
+    return apply ( m_activeCommand->pointerMove ( context, event ), context );
   }
 
   Output Manager::pointerRelease ( const Context &context, const PointerEvent &event )
   {
     if ( ! m_activeCommand ) return Output::ignored ();
-    return apply ( m_activeCommand->pointerRelease ( context, event ) );
+    return apply ( m_activeCommand->pointerRelease ( context, event ), context );
   }
 
   std::string_view Manager::trim ( std::string_view text ) noexcept
@@ -181,7 +207,7 @@ namespace Qadra::Command
     return normalized == "cancel" || normalized == "esc" || normalized == "escape";
   }
 
-  Output Manager::apply ( Output output )
+  Output Manager::apply ( Output output, const Context &context )
   {
     if ( ! output.historyEntries.empty () )
     {
@@ -191,7 +217,11 @@ namespace Qadra::Command
       output.historyEntries.clear ();
     }
 
-    if ( output.finishCommand ) m_activeCommand.reset ();
+    if ( output.finishCommand )
+    {
+      m_activeCommand.reset ();
+      context.editor.endMacro ();
+    }
 
     return output;
   }

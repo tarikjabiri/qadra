@@ -77,6 +77,14 @@ qt_add_resources(qadra "app_draw_assets"
         assets/draw-text.svg
 )
 
+qt_add_resources(qadra "app_ui_assets"
+        PREFIX "/assets"
+        BASE "${CMAKE_SOURCE_DIR}/assets"
+        FILES
+        assets/redo.svg
+        assets/undo.svg
+)
+
 target_include_directories(qadra PRIVATE
   ${QADRA_INCLUDE_DIRS}
 )
@@ -143,7 +151,7 @@ install(SCRIPT ${deploy_script})
 find_program(CLANG_FORMAT clang-format)
 if(CLANG_FORMAT)
   file(GLOB SOURCES_ROOT ${CMAKE_SOURCE_DIR}/*.cpp ${CMAKE_SOURCE_DIR}/*.hpp)
-  file(GLOB SOURCES_CAD ${CMAKE_SOURCE_DIR}/cad/*.cpp ${CMAKE_SOURCE_DIR}/cad/*.hpp)
+  file(GLOB_RECURSE SOURCES_CAD ${CMAKE_SOURCE_DIR}/cad/*.cpp ${CMAKE_SOURCE_DIR}/cad/*.hpp)
   file(GLOB_RECURSE SOURCES_COMMAND ${CMAKE_SOURCE_DIR}/command/*.cpp ${CMAKE_SOURCE_DIR}/command/*.hpp)
   file(GLOB SOURCES_CORE ${CMAKE_SOURCE_DIR}/core/*.cpp ${CMAKE_SOURCE_DIR}/core/*.hpp)
   file(GLOB SOURCES_ENTITY ${CMAKE_SOURCE_DIR}/entity/*.cpp ${CMAKE_SOURCE_DIR}/entity/*.hpp)

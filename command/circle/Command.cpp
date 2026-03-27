@@ -1,6 +1,6 @@
 #include "Command.hpp"
 
-#include "Document.hpp"
+#include "cad/history/DocumentEditor.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -143,7 +143,7 @@ namespace Qadra::Command
       return output;
     }
 
-    context.document.addCircle ( {
+    context.editor.addCircle ( {
         .center = circle->center (),
         .radius = circle->radius (),
     } );

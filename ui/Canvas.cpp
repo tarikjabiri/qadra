@@ -94,12 +94,32 @@ namespace Qadra::Ui
     applyCommandOutput ( m_commandManager.submit ( makeCommandContext () ) );
   }
 
+  void Canvas::undo ()
+  {
+    if ( m_commandManager.activeToolKind () != Tool::ToolKind::None )
+      applyCommandOutput ( m_commandManager.cancel ( makeCommandContext () ) );
+
+    m_documentEditor.undoStack ().undo ();
+    update ();
+  }
+
+  void Canvas::redo ()
+  {
+    if ( m_commandManager.activeToolKind () != Tool::ToolKind::None )
+      applyCommandOutput ( m_commandManager.cancel ( makeCommandContext () ) );
+
+    m_documentEditor.undoStack ().redo ();
+    update ();
+  }
+
   Tool::ToolKind Canvas::activeToolKind () const noexcept
   {
     return m_commandManager.activeToolKind ();
   }
 
   Command::View Canvas::commandView () const { return m_commandManager.view (); }
+
+  QUndoStack *Canvas::undoStack () noexcept { return &m_documentEditor.undoStack (); }
 
   void Canvas::initializeGL ()
   {
@@ -113,18 +133,19 @@ namespace Qadra::Ui
     m_font.emplace (
         m_fontEngine,
         "C:/Program Files/JetBrains/CLion 2025.3.3/jbr/lib/fonts/FiraCode-Retina.ttf" );
+    m_documentEditor.setFont ( m_font ? &*m_font : nullptr );
 
     m_renderer->init ();
 
     m_initialized = true;
 
-    m_document.addLine ( { { -100.0, -100.0 }, { 100.0, 100.0 } } );
+    m_documentEditor.loadLine ( { { -100.0, -100.0 }, { 100.0, 100.0 } } );
     for ( size_t i = 0; i < 3; i++ )
     {
       for ( size_t j = 0; j < 30; j++ )
       {
-        m_document.addText (
-            { { i * 1650, j * 120 }, "Hello Qadra, Developed using OpenGL/Qt", 50.0 }, *m_font );
+        m_documentEditor.loadText (
+            { { i * 1650, j * 120 }, "Hello Qadra, Developed using OpenGL/Qt", 50.0 } );
       }
     }
   }
@@ -173,7 +194,7 @@ namespace Qadra::Ui
 
   Command::Context Canvas::makeCommandContext ()
   {
-    return Command::Context{ m_document, m_camera, m_font ? &*m_font : nullptr };
+    return Command::Context{ m_document, m_documentEditor, m_camera, m_font ? &*m_font : nullptr };
   }
 
   void Canvas::applyCommandOutput ( const Command::Output &output )

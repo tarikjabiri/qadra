@@ -1,6 +1,6 @@
 #include "Command.hpp"
 
-#include "Document.hpp"
+#include "cad/history/DocumentEditor.hpp"
 
 #include <cctype>
 #include <iomanip>
@@ -151,7 +151,7 @@ namespace Qadra::Command
 
     if ( ! samePoint ( *m_state.lastPoint, *m_state.firstPoint ) )
     {
-      context.document.addLine ( { *m_state.lastPoint, *m_state.firstPoint } );
+      context.editor.addLine ( { *m_state.lastPoint, *m_state.firstPoint } );
       output.addHistory ( HistoryEntry::info ( "Close: " + formatPoint ( *m_state.firstPoint ) ) );
     }
     else
@@ -184,7 +184,7 @@ namespace Qadra::Command
   Output LineCommand::commitLine ( const Context &context, const glm::dvec2 &point,
                                    const std::string_view sourceText )
   {
-    context.document.addLine ( { *m_state.lastPoint, point } );
+    context.editor.addLine ( { *m_state.lastPoint, point } );
     m_state.lastPoint = point;
     m_state.previewPoint = point;
     ++m_state.segmentCount;

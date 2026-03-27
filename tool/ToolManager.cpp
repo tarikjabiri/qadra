@@ -1,8 +1,35 @@
 #include "ToolManager.hpp"
 
 #include "Tool.hpp"
+#include "cad/history/DocumentEditor.hpp"
 
 #include <utility>
+
+namespace
+{
+  [[nodiscard]] QString macroTextForKind ( const Qadra::Tool::ToolKind kind )
+  {
+    switch ( kind )
+    {
+      case Qadra::Tool::ToolKind::Line:
+        return QStringLiteral ( "Line" );
+      case Qadra::Tool::ToolKind::Polyline:
+        return QStringLiteral ( "Polyline" );
+      case Qadra::Tool::ToolKind::Arc:
+        return QStringLiteral ( "Arc" );
+      case Qadra::Tool::ToolKind::Circle:
+        return QStringLiteral ( "Circle" );
+      case Qadra::Tool::ToolKind::Ellipse:
+        return QStringLiteral ( "Ellipse" );
+      case Qadra::Tool::ToolKind::Text:
+        return QStringLiteral ( "Text" );
+      case Qadra::Tool::ToolKind::None:
+        break;
+    }
+
+    return QStringLiteral ( "Tool" );
+  }
+} // namespace
 
 namespace Qadra::Tool
 {
@@ -13,11 +40,19 @@ namespace Qadra::Tool
   {
     if ( ! m_activeTool && ! tool ) return ToolEventResult::ignored ();
 
-    if ( m_activeTool ) m_activeTool->deactivate ( context );
+    if ( m_activeTool )
+    {
+      m_activeTool->deactivate ( context );
+      context.editor.endMacro ();
+    }
 
     m_activeTool = std::move ( tool );
 
-    if ( m_activeTool ) m_activeTool->activate ( context );
+    if ( m_activeTool )
+    {
+      context.editor.beginMacro ( macroTextForKind ( m_activeTool->kind () ) );
+      m_activeTool->activate ( context );
+    }
 
     return ToolEventResult::handledAndRepaint ();
   }
@@ -28,6 +63,7 @@ namespace Qadra::Tool
 
     m_activeTool->deactivate ( context );
     m_activeTool.reset ();
+    context.editor.endMacro ();
 
     return ToolEventResult::handledAndRepaint ();
   }
@@ -64,7 +100,11 @@ namespace Qadra::Tool
   ToolEventResult ToolManager::cancelActiveTool ( const ToolContext &context )
   {
     if ( ! m_activeTool ) return ToolEventResult::ignored ();
-    return m_activeTool->cancel ( context );
+
+    const ToolEventResult result = m_activeTool->cancel ( context );
+    context.editor.endMacro ();
+    context.editor.beginMacro ( macroTextForKind ( m_activeTool->kind () ) );
+    return result;
   }
 
   ToolKind ToolManager::activeToolKind () const noexcept

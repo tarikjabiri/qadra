@@ -57,7 +57,7 @@ namespace Qadra::Command
 
     [[nodiscard]] static bool isCancelAlias ( std::string_view text ) noexcept;
 
-    Output apply ( Output output );
+    Output apply ( Output output, const Context &context );
 
     Registry m_registry;
     std::unique_ptr<SessionCommand> m_activeCommand;

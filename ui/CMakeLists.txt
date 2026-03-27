@@ -9,6 +9,8 @@ qt_add_library(qadra_ui STATIC
   DrawMenu.hpp
   DrawToolBar.cpp
   DrawToolBar.hpp
+  QuickToolBar.cpp
+  QuickToolBar.hpp
   Window.cpp
   Window.hpp
 )

@@ -6,6 +6,7 @@
 #include "DocumentChange.hpp"
 #include "Ellipse.hpp"
 #include "Entity.hpp"
+#include "EntitySnapshot.hpp"
 #include "Font.hpp"
 #include "Handle.hpp"
 #include "LWPolyline.hpp"
@@ -14,33 +15,22 @@
 #include "Text.hpp"
 
 #include <QHash>
+#include <memory>
+#include <optional>
+#include <unordered_map>
 #include <vector>
 
 namespace Qadra::Cad
 {
+  class DocumentEditor;
+
   class Document
   {
   public:
     Document () = default;
     ~Document () = default;
 
-    Core::Handle next () { return Core::Handle ( ++m_handleSeed ); }
-
-    Core::Handle addLine ( const Entity::LineRecord &record );
-
-    Core::Handle addArc ( const Entity::ArcRecord &record );
-
-    Core::Handle addCircle ( const Entity::CircleRecord &record );
-
-    Core::Handle addEllipse ( const Entity::EllipseRecord &record );
-
-    Core::Handle addLWPolyline ( const Entity::LWPolylineRecord &record );
-
-    Core::Handle addText ( const Entity::TextRecord &record, Core::Font &font );
-
     Entity::Entity *find ( Core::Handle handle ) const;
-
-    void removeEntity ( Core::Handle handle );
 
     std::vector<DocumentChange> drainChanges () const;
 
@@ -57,8 +47,30 @@ namespace Qadra::Cad
     void resetDirty () const;
 
   private:
+    friend class DocumentEditor;
+
     static Math::BoxAABB computeTextBBox ( const Entity::TextRecord &record,
                                            const Core::TextLayout &layout, Core::Font &font );
+
+    [[nodiscard]] Core::Handle next () { return Core::Handle ( ++m_handleSeed ); }
+
+    Core::Handle addLine ( const Entity::LineRecord &record );
+
+    Core::Handle addArc ( const Entity::ArcRecord &record );
+
+    Core::Handle addCircle ( const Entity::CircleRecord &record );
+
+    Core::Handle addEllipse ( const Entity::EllipseRecord &record );
+
+    Core::Handle addLWPolyline ( const Entity::LWPolylineRecord &record );
+
+    Core::Handle addText ( const Entity::TextRecord &record, Core::Font &font );
+
+    [[nodiscard]] std::optional<EntitySnapshot> snapshotEntity ( Core::Handle handle ) const;
+
+    [[nodiscard]] std::optional<EntitySnapshot> takeEntity ( Core::Handle handle );
+
+    [[nodiscard]] bool restoreEntity ( const EntitySnapshot &snapshot );
 
     void recordChange ( DocumentChange::Kind kind, Core::Handle handle ) const;
 

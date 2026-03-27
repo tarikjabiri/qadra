@@ -1,6 +1,6 @@
 #include "LineTool.hpp"
 
-#include "Document.hpp"
+#include "cad/history/DocumentEditor.hpp"
 #include "command/point/Resolver.hpp"
 
 namespace Qadra::Tool
@@ -76,7 +76,7 @@ namespace Qadra::Tool
 
   ToolEventResult LineTool::commitLine ( const ToolContext &context, const glm::dvec2 &point )
   {
-    context.document.addLine ( { *m_startPoint, point } );
+    context.editor.addLine ( { *m_startPoint, point } );
     m_startPoint = point;
     m_currentPoint = point;
     return ToolEventResult::handledAndRepaint ();

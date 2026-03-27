@@ -4,7 +4,8 @@
 namespace Qadra::Cad
 {
   class Document;
-}
+  class DocumentEditor;
+} // namespace Qadra::Cad
 
 namespace Qadra::Core
 {
@@ -17,6 +18,7 @@ namespace Qadra::Command
   struct Context
   {
     Cad::Document &document;
+    Cad::DocumentEditor &editor;
     Core::Camera &camera;
     Core::Font *font = nullptr;
 
