@@ -17,6 +17,7 @@
 class QMouseEvent;
 class QEnterEvent;
 class QEvent;
+class QKeyEvent;
 class QWheelEvent;
 
 namespace Qadra::Ui
@@ -29,6 +30,9 @@ namespace Qadra::Ui
     explicit Canvas ( QWidget *parent = nullptr );
 
     void setActiveTool ( Qadra::Tool::ToolKind kind );
+
+  signals:
+    void toolSelectionRequested ( Qadra::Tool::ToolKind kind );
 
   protected:
     void initializeGL () override;
@@ -46,6 +50,8 @@ namespace Qadra::Ui
     void mouseReleaseEvent ( QMouseEvent *event ) override;
 
     void mouseMoveEvent ( QMouseEvent *event ) override;
+
+    void keyPressEvent ( QKeyEvent *event ) override;
 
     void wheelEvent ( QWheelEvent *event ) override;
 

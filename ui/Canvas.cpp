@@ -7,6 +7,7 @@
 #include <QCursor>
 #include <QEnterEvent>
 #include <QFile>
+#include <QKeyEvent>
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QOpenGLContext>
@@ -260,6 +261,7 @@ namespace Qadra::Ui
 
   void Canvas::mousePressEvent ( QMouseEvent *event )
   {
+    setFocus ( Qt::MouseFocusReason );
     updateCursorPosition ( event->position () );
 
     if ( event->button () == Qt::MiddleButton )
@@ -342,6 +344,19 @@ namespace Qadra::Ui
     }
 
     QOpenGLWidget::mouseMoveEvent ( event );
+  }
+
+  void Canvas::keyPressEvent ( QKeyEvent *event )
+  {
+    if ( event->key () == Qt::Key_Escape &&
+         m_toolManager.activeToolKind () != Tool::ToolKind::None )
+    {
+      emit toolSelectionRequested ( Tool::ToolKind::None );
+      event->accept ();
+      return;
+    }
+
+    QOpenGLWidget::keyPressEvent ( event );
   }
 
   void Canvas::wheelEvent ( QWheelEvent *event )

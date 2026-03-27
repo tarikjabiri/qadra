@@ -20,6 +20,7 @@ Window::Window ( QWidget *parent ) : QMainWindow ( parent )
   setCentralWidget ( m_canvas );
 
   connect ( m_drawToolBar, &Qadra::Ui::DrawToolBar::toolSelected, this, &Window::selectTool );
+  connect ( m_canvas, &Qadra::Ui::Canvas::toolSelectionRequested, this, &Window::selectTool );
   selectTool ( m_drawToolBar->selectedToolKind () );
 
   m_cmdLine = new Qadra::Ui::CmdLine ( this );
@@ -32,4 +33,9 @@ Window::Window ( QWidget *parent ) : QMainWindow ( parent )
 
 Window::~Window () = default;
 
-void Window::selectTool ( const Qadra::Tool::ToolKind kind ) { m_canvas->setActiveTool ( kind ); }
+void Window::selectTool ( const Qadra::Tool::ToolKind kind )
+{
+  m_drawToolBar->setSelectedToolKind ( kind );
+  m_canvas->setActiveTool ( kind );
+  m_canvas->setFocus ( Qt::OtherFocusReason );
+}

@@ -3,6 +3,7 @@
 #include <QAction>
 #include <QActionGroup>
 #include <QIcon>
+#include <QSignalBlocker>
 #include <QSize>
 
 namespace Qadra::Ui
@@ -49,9 +50,24 @@ namespace Qadra::Ui
 
   DrawToolBar::~DrawToolBar () = default;
 
+  void DrawToolBar::setSelectedToolKind ( const Tool::ToolKind kind )
+  {
+    if ( selectedToolKind () == kind ) return;
+
+    const QSignalBlocker lineBlocker ( m_lineAction );
+    const QSignalBlocker arcBlocker ( m_arcAction );
+    const QSignalBlocker textBlocker ( m_textAction );
+
+    if ( m_lineAction ) m_lineAction->setChecked ( kind == Tool::ToolKind::Line );
+    if ( m_arcAction ) m_arcAction->setChecked ( kind == Tool::ToolKind::Arc );
+    if ( m_textAction ) m_textAction->setChecked ( kind == Tool::ToolKind::Text );
+  }
+
   Tool::ToolKind DrawToolBar::selectedToolKind () const noexcept
   {
     if ( m_lineAction && m_lineAction->isChecked () ) return Tool::ToolKind::Line;
+    if ( m_arcAction && m_arcAction->isChecked () ) return Tool::ToolKind::Arc;
+    if ( m_textAction && m_textAction->isChecked () ) return Tool::ToolKind::Text;
     return Tool::ToolKind::None;
   }
 } // namespace Qadra::Ui

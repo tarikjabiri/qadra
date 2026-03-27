@@ -19,6 +19,8 @@ namespace Qadra::Ui
 
     ~DrawToolBar () override;
 
+    void setSelectedToolKind ( Qadra::Tool::ToolKind kind );
+
     [[nodiscard]] Qadra::Tool::ToolKind selectedToolKind () const noexcept;
 
   signals:
