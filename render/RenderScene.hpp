@@ -5,11 +5,11 @@
 #include "Document.hpp"
 #include "EllipsePass.hpp"
 #include "LinePass.hpp"
+#include "ManagedBuffer.hpp"
 #include "TextPass.hpp"
-#include "VertexBatch.hpp"
-#include "VisibleDrawList.hpp"
 #include "gl/Buffer.hpp"
 
+#include <limits>
 #include <unordered_map>
 #include <vector>
 
@@ -23,48 +23,25 @@ namespace Qadra::Render
     void draw ( const Core::Camera &camera, const Core::Font &font ) const;
 
   private:
-    static constexpr std::size_t kMaxEntitiesPerPage = 512;
-    static constexpr std::size_t kMaxArcInstancesPerPage = 2048;
-    static constexpr std::size_t kMaxEllipseInstancesPerPage = 2048;
-    static constexpr std::size_t kMaxLineVerticesPerPage = 4096;
+    static constexpr std::size_t kInvalidTextPage = std::numeric_limits<std::size_t>::max ();
     static constexpr std::size_t kMaxTextInstancesPerPage = 4096;
-    static constexpr std::size_t kMaxOverlayEntities = 512;
-    static constexpr std::size_t kMaxOverlayArcInstances = 16384;
-    static constexpr std::size_t kMaxOverlayEllipseInstances = 16384;
-    static constexpr std::size_t kMaxOverlayLineVertices = 16384;
-    static constexpr std::size_t kMaxOverlayTextInstances = 32768;
-
-    enum class StorageLocation
-    {
-      Main,
-      Overlay,
-    };
-
-    struct Page
-    {
-      Math::BoxAABB bbox;
-      GLint arcInstanceFirst = 0;
-      GLsizei arcInstanceCount = 0;
-      GLint ellipseInstanceFirst = 0;
-      GLsizei ellipseInstanceCount = 0;
-      GLint lineFirst = 0;
-      GLsizei lineCount = 0;
-      GLuint textInstanceFirst = 0;
-      GLuint textInstanceCount = 0;
-    };
 
     struct Placement
     {
-      StorageLocation storage = StorageLocation::Main;
+      SlotAllocator::Range arcSlots;
+      SlotAllocator::Range ellipseSlots;
+      SlotAllocator::Range lineSlots;
+      SlotAllocator::Range textSlots;
       Math::BoxAABB bbox;
-      GLint arcInstanceFirst = 0;
-      GLsizei arcInstanceCount = 0;
-      GLint ellipseInstanceFirst = 0;
-      GLsizei ellipseInstanceCount = 0;
-      GLint lineFirst = 0;
-      GLsizei lineCount = 0;
-      GLuint textInstanceFirst = 0;
-      GLuint textInstanceCount = 0;
+      std::size_t textPage = kInvalidTextPage;
+    };
+
+    struct TextPage
+    {
+      SlotAllocator::Range instanceRange;
+      Math::BoxAABB bbox;
+      std::vector<Core::Handle> handles;
+      bool bboxDirty = false;
     };
 
     struct GeometrySpan
@@ -73,58 +50,40 @@ namespace Qadra::Render
       std::vector<EllipsePass::Instance> ellipseInstances;
       std::vector<LinePass::Vertex> lineVertices;
       std::vector<TextPass::Instance> textInstances;
-      Math::BoxAABB bbox;
     };
 
-    using PlacementMap = std::unordered_map<Core::Handle, Placement>;
+    void addEntity ( const Cad::Document &document, Core::Handle handle, Core::Font &font );
+    [[nodiscard]] bool removeEntity ( Core::Handle handle );
+    [[nodiscard]] bool modifyEntity ( const Cad::Document &document, Core::Handle handle,
+                                      Core::Font &font );
+    void rebuildAll ( const Cad::Document &document, Core::Font &font );
+    void uploadVisibleTextCommands ( const Core::Camera &camera ) const;
+    void refreshDirtyTextPages ();
+    void markTextPageDirty ( std::size_t pageIndex );
+    std::size_t appendTextPage ( SlotAllocator::Range instanceRange, Math::BoxAABB bbox,
+                                 std::vector<Core::Handle> handles );
 
-    void rebuildMain ( const Cad::Document &document, Core::Font &font );
-    void appendAddedEntity ( const Cad::Document &document, Core::Handle handle, Core::Font &font );
-    void clearOverlay ();
-    void rebuildVisibleDrawLists ( const Core::Camera &camera ) const;
-    void uploadVisibleTextCommands () const;
+    [[nodiscard]] static GeometrySpan buildGeometry ( const Entity::Entity &entity,
+                                                      Core::Font &font );
+    [[nodiscard]] bool shouldCompact () const;
 
-    static GeometrySpan buildGeometry ( const Entity::Entity &entity, Core::Font &font );
-    bool overlayTooLarge () const;
+    [[nodiscard]] static glm::vec4 colorForRenderKey ( std::uint32_t renderKey );
+    [[nodiscard]] static std::uint16_t packUnorm16 ( float value );
+    [[nodiscard]] static std::int16_t packSnorm16 ( float value );
+    [[nodiscard]] static std::uint8_t packUnorm8 ( float value );
 
-    static glm::vec4 colorForRenderKey ( std::uint32_t renderKey );
-    static std::uint16_t packUnorm16 ( float value );
-    static std::int16_t packSnorm16 ( float value );
-    static std::uint8_t packUnorm8 ( float value );
+    ManagedBuffer<ArcPass::Instance> m_arcBuffer;
+    ManagedBuffer<EllipsePass::Instance> m_ellipseBuffer;
+    ManagedBuffer<LinePass::Vertex> m_lineBuffer;
+    ManagedBuffer<TextPass::Instance> m_textBuffer;
 
-    std::vector<Page> m_pages;
-    PlacementMap m_placements;
+    std::unordered_map<Core::Handle, Placement> m_placements;
+    std::vector<TextPage> m_textPages;
 
-    std::vector<ArcPass::Instance> m_mainArcInstances;
-    std::vector<EllipsePass::Instance> m_mainEllipseInstances;
-    std::vector<LinePass::Vertex> m_mainLineVertices;
-    std::vector<TextPass::Instance> m_mainTextInstances;
-    VertexBatch<ArcPass::Instance> m_mainArcBatch;
-    VertexBatch<EllipsePass::Instance> m_mainEllipseBatch;
-    VertexBatch<LinePass::Vertex> m_mainLineBatch;
-    VertexBatch<TextPass::Instance> m_mainTextBatch;
+    mutable std::vector<TextPass::DrawCommand> m_visibleTextCommands;
+    mutable GL::Buffer m_textCommandBuffer{ GL::Buffer::Target::DrawIndirectBuffer };
 
-    std::vector<ArcPass::Instance> m_overlayArcInstances;
-    std::vector<EllipsePass::Instance> m_overlayEllipseInstances;
-    std::vector<LinePass::Vertex> m_overlayLineVertices;
-    std::vector<TextPass::Instance> m_overlayTextInstances;
-    VertexBatch<ArcPass::Instance> m_overlayArcBatch;
-    VertexBatch<EllipsePass::Instance> m_overlayEllipseBatch;
-    VertexBatch<LinePass::Vertex> m_overlayLineBatch;
-    VertexBatch<TextPass::Instance> m_overlayTextBatch;
-    std::vector<Placement> m_overlayPlacements;
-
-    mutable VisibleDrawList m_visibleMainArcs;
-    mutable VisibleDrawList m_visibleMainEllipses;
-    mutable VisibleDrawList m_visibleMainLines;
-    mutable VisibleDrawList m_visibleOverlayArcs;
-    mutable VisibleDrawList m_visibleOverlayEllipses;
-    mutable VisibleDrawList m_visibleOverlayLines;
-    mutable std::vector<TextPass::DrawCommand> m_visibleMainTextCommands;
-    mutable std::vector<TextPass::DrawCommand> m_visibleOverlayTextCommands;
-    mutable GL::Buffer m_mainTextCommandBuffer{ GL::Buffer::Target::DrawIndirectBuffer };
-    mutable GL::Buffer m_overlayTextCommandBuffer{ GL::Buffer::Target::DrawIndirectBuffer };
-
+    std::size_t m_deadTextInstances = 0;
     bool m_initialized = false;
     bool m_bootstrapped = false;
     float m_renderKeyScale = 1.0f;

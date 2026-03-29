@@ -69,6 +69,11 @@ namespace Qadra::Render
                         .type = GL_UNSIGNED_INT,
                         .relativeOffset = offsetof ( Instance, renderKey ),
                         .integer = true } );
+    m_vao.attribute ( { .index = 8,
+                        .size = 1,
+                        .type = GL_UNSIGNED_INT,
+                        .relativeOffset = offsetof ( Instance, flags ),
+                        .integer = true } );
     m_vao.bindingDivisor ( 0, 1 );
   }
 } // namespace Qadra::Render

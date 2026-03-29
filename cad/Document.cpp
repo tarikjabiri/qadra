@@ -159,12 +159,10 @@ namespace Qadra::Cad
     if ( ! snapshot.has_value () ) return std::nullopt;
 
     const auto drawIndex = static_cast<qsizetype> ( snapshot->drawIndex );
-    m_dirtyFrom = std::min ( m_dirtyFrom, snapshot->drawIndex );
 
     m_spatialIndex.remove ( handle );
     m_entities.erase ( handle );
     m_drawOrder.removeAt ( drawIndex );
-    ++m_version;
     recordChange ( DocumentChange::Kind::Removed, handle );
     return snapshot;
   }
@@ -172,24 +170,37 @@ namespace Qadra::Cad
   bool Document::restoreEntity ( const EntitySnapshot &snapshot )
   {
     if ( ! snapshot.handle.isValid () ) return false;
-    if ( m_entities.contains ( snapshot.handle ) ) return false;
+    if ( m_entities.contains ( snapshot.handle ) ) return updateEntity ( snapshot );
 
     auto entity = makeEntity ( snapshot );
     if ( ! entity ) return false;
 
     const auto boundedIndex = static_cast<qsizetype> (
         std::min ( snapshot.drawIndex, static_cast<std::size_t> ( m_drawOrder.size () ) ) );
-    const auto changeKind = boundedIndex == m_drawOrder.size () ? DocumentChange::Kind::Added
-                                                                : DocumentChange::Kind::Reset;
 
     m_spatialIndex.insert ( snapshot.handle, entity->bbox () );
     m_entities.emplace ( snapshot.handle, std::move ( entity ) );
     m_drawOrder.insert ( boundedIndex, snapshot.handle );
     m_handleSeed = std::max ( m_handleSeed, snapshot.handle.value () );
     m_renderKeySeed = std::max ( m_renderKeySeed, snapshot.renderKey );
-    m_dirtyFrom = std::min ( m_dirtyFrom, static_cast<std::size_t> ( boundedIndex ) );
-    ++m_version;
-    recordChange ( changeKind, snapshot.handle );
+    recordChange ( DocumentChange::Kind::Added, snapshot.handle );
+    return true;
+  }
+
+  bool Document::updateEntity ( const EntitySnapshot &snapshot )
+  {
+    if ( ! snapshot.handle.isValid () ) return false;
+
+    if ( m_drawOrder.indexOf ( snapshot.handle ) < 0 ) return false;
+
+    auto entity = makeEntity ( snapshot );
+    if ( ! entity ) return false;
+
+    m_spatialIndex.update ( snapshot.handle, entity->bbox () );
+    m_entities[snapshot.handle] = std::move ( entity );
+    m_handleSeed = std::max ( m_handleSeed, snapshot.handle.value () );
+    m_renderKeySeed = std::max ( m_renderKeySeed, snapshot.renderKey );
+    recordChange ( DocumentChange::Kind::Modified, snapshot.handle );
     return true;
   }
 
@@ -199,8 +210,6 @@ namespace Qadra::Cad
     m_pendingChanges.clear ();
     return changes;
   }
-
-  void Document::resetDirty () const { m_dirtyFrom = m_drawOrder.size (); }
 
   Math::BoxAABB Document::computeTextBBox ( const Entity::TextRecord &record,
                                             const Core::TextLayout &layout, Core::Font &font )

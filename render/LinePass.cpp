@@ -35,5 +35,10 @@ namespace Qadra::Render
                         .type = GL_UNSIGNED_INT,
                         .relativeOffset = offsetof ( Vertex, renderKey ),
                         .integer = true } );
+    m_vao.attribute ( { .index = 3,
+                        .size = 1,
+                        .type = GL_UNSIGNED_INT,
+                        .relativeOffset = offsetof ( Vertex, flags ),
+                        .integer = true } );
   }
 } // namespace Qadra::Render

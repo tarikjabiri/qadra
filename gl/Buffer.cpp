@@ -33,10 +33,24 @@ namespace Qadra::GL
     glNamedBufferData ( m_handle, size, data, static_cast<GLenum> ( usage ) );
   }
 
+  void Buffer::allocateStorage ( const GLsizeiptr size, const GLbitfield flags,
+                                 const GLvoid *data ) const
+  {
+    glNamedBufferStorage ( m_handle, size, data, flags );
+  }
+
   void Buffer::update ( const GLintptr offset, GLsizeiptr size, const GLvoid *data ) const
   {
     glNamedBufferSubData ( m_handle, offset, size, data );
   }
+
+  void *Buffer::mapRange ( const GLintptr offset, const GLsizeiptr size,
+                           const GLbitfield access ) const
+  {
+    return glMapNamedBufferRange ( m_handle, offset, size, access );
+  }
+
+  bool Buffer::unmap () const { return glUnmapNamedBuffer ( m_handle ) == GL_TRUE; }
 
   void swap ( Buffer &lhs, Buffer &rhs ) noexcept
   {

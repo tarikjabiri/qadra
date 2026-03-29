@@ -15,6 +15,7 @@ add_library(qadra_render STATIC
   LinePass.hpp
   LWPolylineGeometryBuilder.cpp
   LWPolylineGeometryBuilder.hpp
+  ManagedBuffer.hpp
   PreviewRenderer.cpp
   PreviewRenderer.hpp
   RenderScene.cpp
@@ -23,11 +24,10 @@ add_library(qadra_render STATIC
   RenderPass.hpp
   Renderer.cpp
   Renderer.hpp
+  SlotAllocator.hpp
   TextPass.cpp
   TextPass.hpp
   VertexBatch.hpp
-  VisibleDrawList.cpp
-  VisibleDrawList.hpp
 )
 
 target_include_directories(qadra_render PUBLIC

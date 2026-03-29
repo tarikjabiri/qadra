@@ -11,6 +11,7 @@ namespace Qadra::Cad
     {
       Added,
       Removed,
+      Modified,
       Reset,
     };
 

@@ -26,6 +26,7 @@ namespace Qadra::Render
       float sweepAngle = 0.0f;
       std::array<std::uint8_t, 4> color{ 255, 255, 255, 255 };
       std::uint32_t renderKey = 0;
+      std::uint32_t flags = 0;
     };
 
     ArcPass ();

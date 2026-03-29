@@ -19,6 +19,7 @@ namespace Qadra::Render
       glm::dvec2 position;
       glm::vec4 color;
       std::uint32_t renderKey;
+      std::uint32_t flags = 0;
     };
 
     LinePass ();

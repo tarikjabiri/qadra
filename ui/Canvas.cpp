@@ -1,13 +1,14 @@
 #include "Canvas.hpp"
 
+#include "CanvasOverlayWidget.hpp"
+
 #include <QCursor>
 #include <QEnterEvent>
-#include <QFile>
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QOpenGLContext>
-#include <QPainter>
+#include <QResizeEvent>
 #include <QSurfaceFormat>
 #include <QWheelEvent>
 #include <glad/gl.h>
@@ -71,6 +72,11 @@ namespace Qadra::Ui
 
     setFocusPolicy ( Qt::StrongFocus );
     setMouseTracking ( true );
+
+    m_overlayWidget = new CanvasOverlayWidget ( this );
+    m_overlayWidget->setGeometry ( rect () );
+    m_overlayWidget->raise ();
+    syncCursorOverlayWidget ();
   }
 
   void Canvas::startCommand ( const Tool::ToolKind kind )
@@ -100,7 +106,7 @@ namespace Qadra::Ui
       applyCommandOutput ( m_commandManager.cancel ( makeCommandContext () ) );
 
     m_documentEditor.undoStack ().undo ();
-    update ();
+    requestSceneUpdate ();
   }
 
   void Canvas::redo ()
@@ -109,7 +115,7 @@ namespace Qadra::Ui
       applyCommandOutput ( m_commandManager.cancel ( makeCommandContext () ) );
 
     m_documentEditor.undoStack ().redo ();
-    update ();
+    requestSceneUpdate ();
   }
 
   Tool::ToolKind Canvas::activeToolKind () const noexcept
@@ -140,9 +146,9 @@ namespace Qadra::Ui
     m_initialized = true;
 
     m_documentEditor.loadLine ( { { -100.0, -100.0 }, { 100.0, 100.0 } } );
-    for ( size_t i = 0; i < 3; i++ )
+    for ( size_t i = 0; i < 100; i++ )
     {
-      for ( size_t j = 0; j < 30; j++ )
+      for ( size_t j = 0; j < 1000; j++ )
       {
         m_documentEditor.loadText (
             { { i * 1650, j * 120 }, "Hello Qadra, Developed using OpenGL/Qt", 50.0 } );
@@ -158,19 +164,26 @@ namespace Qadra::Ui
 
     const auto preview = makePreview ();
     m_renderer->render ( m_document, m_camera, *m_font, preview );
-
-    QPainter painter ( this );
-    m_cursorOverlay.paint ( painter, makeCursorOverlayState () );
+    m_sceneDirty = false;
   }
 
   void Canvas::resizeGL ( const int, const int ) { updateCameraViewport (); }
+
+  void Canvas::resizeEvent ( QResizeEvent *event )
+  {
+    QOpenGLWidget::resizeEvent ( event );
+
+    if ( m_overlayWidget == nullptr ) return;
+
+    m_overlayWidget->setGeometry ( rect () );
+    m_overlayWidget->raise ();
+  }
 
   void Canvas::enterEvent ( QEnterEvent *event )
   {
     m_isMouseInside = true;
     updateCursorPosition ( event->position () );
     syncCanvasCursor ();
-    update ();
     QOpenGLWidget::enterEvent ( event );
   }
 
@@ -178,8 +191,8 @@ namespace Qadra::Ui
   {
     m_isMouseInside = false;
     m_hasCursorPosition = false;
+    syncCursorOverlayWidget ();
     syncCanvasCursor ();
-    update ();
     QOpenGLWidget::leaveEvent ( event );
   }
 
@@ -199,8 +212,9 @@ namespace Qadra::Ui
 
   void Canvas::applyCommandOutput ( const Command::Output &output )
   {
-    if ( output.requestRepaint ) update ();
+    if ( output.requestRepaint ) requestSceneUpdate ();
     if ( output.viewChanged ) emit commandViewChanged ();
+    syncCursorOverlayWidget ();
   }
 
   Command::PointerEvent Canvas::makeCommandPointerEvent ( const QMouseEvent &event )
@@ -295,10 +309,18 @@ namespace Qadra::Ui
     unsetCursor ();
   }
 
+  void Canvas::syncCursorOverlayWidget ()
+  {
+    if ( m_overlayWidget == nullptr ) return;
+
+    m_overlayWidget->setCursorState ( makeCursorOverlayState () );
+  }
+
   void Canvas::updateCursorPosition ( const QPointF &position )
   {
     m_cursorPosition = position;
     m_hasCursorPosition = true;
+    syncCursorOverlayWidget ();
   }
 
   void Canvas::updateCameraViewport ()
@@ -319,6 +341,18 @@ namespace Qadra::Ui
     }
   }
 
+  void Canvas::requestSceneUpdate ()
+  {
+    if ( m_sceneDirty )
+    {
+      update ();
+      return;
+    }
+
+    m_sceneDirty = true;
+    update ();
+  }
+
   void Canvas::mousePressEvent ( QMouseEvent *event )
   {
     setFocus ( Qt::MouseFocusReason );
@@ -329,8 +363,14 @@ namespace Qadra::Ui
       const auto position = m_camera.devicePixels ( event->position () );
       m_cameraController.mousePress ( position, event->button () );
       syncCanvasCursor ();
-      update ();
+      syncCursorOverlayWidget ();
       event->accept ();
+      return;
+    }
+
+    if ( m_commandManager.activeToolKind () == Tool::ToolKind::None )
+    {
+      QOpenGLWidget::mousePressEvent ( event );
       return;
     }
 
@@ -356,8 +396,14 @@ namespace Qadra::Ui
     {
       m_cameraController.mouseRelease ( event->button () );
       syncCanvasCursor ();
-      update ();
+      syncCursorOverlayWidget ();
       event->accept ();
+      return;
+    }
+
+    if ( m_commandManager.activeToolKind () == Tool::ToolKind::None )
+    {
+      QOpenGLWidget::mouseReleaseEvent ( event );
       return;
     }
 
@@ -385,8 +431,16 @@ namespace Qadra::Ui
     if ( m_cameraController.isPanning () )
     {
       syncCanvasCursor ();
-      update ();
+      syncCursorOverlayWidget ();
+      requestSceneUpdate ();
       event->accept ();
+      return;
+    }
+
+    if ( m_commandManager.activeToolKind () == Tool::ToolKind::None )
+    {
+      syncCanvasCursor ();
+      QOpenGLWidget::mouseMoveEvent ( event );
       return;
     }
 
@@ -395,7 +449,6 @@ namespace Qadra::Ui
 
     syncCanvasCursor ();
     applyCommandOutput ( output );
-    update ();
 
     if ( output.handled )
     {
@@ -454,7 +507,8 @@ namespace Qadra::Ui
     const float delta = event->angleDelta ().y () / 120.0f;
     const auto pos = m_camera.devicePixels ( event->position () );
     m_cameraController.wheel ( delta, pos );
-    update ();
+    syncCursorOverlayWidget ();
+    requestSceneUpdate ();
     event->accept ();
   }
 } // namespace Qadra::Ui

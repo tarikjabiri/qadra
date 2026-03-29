@@ -15,8 +15,8 @@ namespace
   void appendSolidLine ( std::vector<Qadra::Render::LinePass::Vertex> &vertices,
                          const Qadra::Render::PreviewLine &line )
   {
-    vertices.push_back ( { line.start, line.color, 0 } );
-    vertices.push_back ( { line.end, line.color, 0 } );
+    vertices.push_back ( { line.start, line.color, 0, 1u } );
+    vertices.push_back ( { line.end, line.color, 0, 1u } );
   }
 
   void appendDashedLine ( std::vector<Qadra::Render::LinePass::Vertex> &vertices,
@@ -41,8 +41,8 @@ namespace
     {
       const double dashStart = offset;
       const double dashEnd = std::min ( offset + dashWorld, length );
-      vertices.push_back ( { line.start + direction * dashStart, line.color, 0 } );
-      vertices.push_back ( { line.start + direction * dashEnd, line.color, 0 } );
+      vertices.push_back ( { line.start + direction * dashStart, line.color, 0, 1u } );
+      vertices.push_back ( { line.start + direction * dashEnd, line.color, 0, 1u } );
     }
   }
 } // namespace

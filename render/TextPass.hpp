@@ -26,6 +26,7 @@ namespace Qadra::Render
       std::array<std::int16_t, 2> rotation;
       std::array<std::uint8_t, 4> color;
       std::uint32_t renderKey;
+      std::uint32_t flags = 0;
     };
 
     struct DrawCommand

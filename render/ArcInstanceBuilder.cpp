@@ -35,6 +35,7 @@ namespace Qadra::Render
                 packUnorm8 ( color.a ),
             },
         .renderKey = renderKey,
+        .flags = 1u,
     };
   }
 } // namespace Qadra::Render

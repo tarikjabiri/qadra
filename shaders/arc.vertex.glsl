@@ -8,6 +8,7 @@ layout(location = 4) in float a_startAngle;
 layout(location = 5) in float a_sweepAngle;
 layout(location = 6) in vec4 a_color;
 layout(location = 7) in uint a_renderKey;
+layout(location = 8) in uint a_flags;
 
 uniform dmat4 u_viewProjection;
 uniform float u_renderKeyScale;
@@ -29,6 +30,16 @@ const vec2 kCorners[6] = vec2[](
 );
 
 void main() {
+    if ((a_flags & 1u) == 0u) {
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+        v_localWorld = vec2(0.0);
+        v_radiusWorld = 0.0;
+        v_startAngle = 0.0;
+        v_sweepAngle = 0.0;
+        v_color = vec4(0.0);
+        return;
+    }
+
     const float proxyMarginWorld = u_pixelSizeWorld * 2.5;
     vec2 localMin = a_boundsMinLocal - vec2(proxyMarginWorld);
     vec2 localMax = a_boundsMaxLocal + vec2(proxyMarginWorld);

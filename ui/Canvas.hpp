@@ -21,11 +21,14 @@ class QMouseEvent;
 class QEnterEvent;
 class QEvent;
 class QKeyEvent;
+class QResizeEvent;
 class QWheelEvent;
 class QUndoStack;
 
 namespace Qadra::Ui
 {
+  class CanvasOverlayWidget;
+
   class Canvas : public QOpenGLWidget
   {
     Q_OBJECT
@@ -61,6 +64,8 @@ namespace Qadra::Ui
 
     void resizeGL ( int width, int height ) override;
 
+    void resizeEvent ( QResizeEvent *event ) override;
+
     void enterEvent ( QEnterEvent *event ) override;
 
     void leaveEvent ( QEvent *event ) override;
@@ -90,12 +95,15 @@ namespace Qadra::Ui
     [[nodiscard]] bool shouldShowCursorPickbox () const noexcept;
 
     void syncCanvasCursor ();
+    void syncCursorOverlayWidget ();
     void updateCursorPosition ( const QPointF &position );
 
     void updateCameraViewport ();
+    void requestSceneUpdate ();
 
     bool m_initialized = false;
     bool m_hasInitializedCameraViewport = false;
+    bool m_sceneDirty = true;
 
     Core::Camera m_camera;
     Core::CameraController m_cameraController{ m_camera };
@@ -104,7 +112,7 @@ namespace Qadra::Ui
     Cad::DocumentEditor m_documentEditor{ m_document };
     Qadra::Command::Manager m_commandManager;
     std::optional<Render::Renderer> m_renderer;
-    CanvasCursorOverlay m_cursorOverlay;
+    CanvasOverlayWidget *m_overlayWidget = nullptr;
 
     Core::FontEngine m_fontEngine;
     std::optional<Core::Font> m_font;

@@ -38,13 +38,7 @@ namespace Qadra::Cad
 
     const Spatial::SpatialIndex &spatialIndex () const { return m_spatialIndex; }
 
-    std::size_t version () const { return m_version; }
-
-    std::size_t dirtyFrom () const { return m_dirtyFrom; }
-
     std::uint32_t maxRenderKey () const { return m_renderKeySeed; }
-
-    void resetDirty () const;
 
   private:
     friend class DocumentEditor;
@@ -71,6 +65,7 @@ namespace Qadra::Cad
     [[nodiscard]] std::optional<EntitySnapshot> takeEntity ( Core::Handle handle );
 
     [[nodiscard]] bool restoreEntity ( const EntitySnapshot &snapshot );
+    [[nodiscard]] bool updateEntity ( const EntitySnapshot &snapshot );
 
     void recordChange ( DocumentChange::Kind kind, Core::Handle handle ) const;
 
@@ -79,8 +74,6 @@ namespace Qadra::Cad
     std::unordered_map<Core::Handle, std::unique_ptr<Entity::Entity>> m_entities;
     QList<Core::Handle> m_drawOrder;
     Spatial::SpatialIndex m_spatialIndex;
-    std::size_t m_version = 0;
-    mutable std::size_t m_dirtyFrom = 0;
     mutable std::vector<DocumentChange> m_pendingChanges;
   };
 } // namespace Qadra::Cad

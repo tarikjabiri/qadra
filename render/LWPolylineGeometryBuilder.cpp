@@ -26,8 +26,8 @@ namespace
       return;
     }
 
-    geometry.lineVertices.push_back ( { start.point, color, renderKey } );
-    geometry.lineVertices.push_back ( { end.point, color, renderKey } );
+    geometry.lineVertices.push_back ( { start.point, color, renderKey, 1u } );
+    geometry.lineVertices.push_back ( { end.point, color, renderKey, 1u } );
   }
 } // namespace
 

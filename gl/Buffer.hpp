@@ -40,6 +40,8 @@ namespace Qadra::GL
     void allocate ( GLsizeiptr size, Usage usage = Usage::StaticDraw,
                     const GLvoid *data = nullptr ) const;
 
+    void allocateStorage ( GLsizeiptr size, GLbitfield flags, const GLvoid *data = nullptr ) const;
+
     template <typename T, std::size_t Extent>
     void allocate ( std::span<const T, Extent> data, Usage usage = Usage::StaticDraw ) const
     {
@@ -48,6 +50,10 @@ namespace Qadra::GL
     }
 
     void update ( GLintptr offset, GLsizeiptr size, const GLvoid *data ) const;
+
+    [[nodiscard]] void *mapRange ( GLintptr offset, GLsizeiptr size, GLbitfield access ) const;
+
+    [[nodiscard]] bool unmap () const;
 
     template <typename T>
     void update ( const GLintptr offset, std::span<const T> data ) const

@@ -12,7 +12,7 @@
 
 namespace
 {
-  float normalizedByte ( const std::uint32_t value, const int shift )
+  [[nodiscard]] float normalizedByte ( const std::uint32_t value, const int shift )
   {
     return static_cast<float> ( ( value >> shift ) & 0xFFu ) / 255.0f;
   }
@@ -41,319 +41,341 @@ namespace Qadra::Render
     const auto changes = document.drainChanges ();
     if ( ! m_bootstrapped )
     {
-      rebuildMain ( document, font );
+      rebuildAll ( document, font );
       return;
     }
 
-    bool requiresRebuild = false;
+    bool needsFullRebuild = false;
+    bool structureChanged = false;
+
     for ( const auto &change : changes )
     {
       switch ( change.kind )
       {
         case Cad::DocumentChange::Kind::Added:
-          appendAddedEntity ( document, change.handle, font );
+          addEntity ( document, change.handle, font );
+          structureChanged = true;
           break;
         case Cad::DocumentChange::Kind::Removed:
+          structureChanged = removeEntity ( change.handle ) || structureChanged;
+          break;
+        case Cad::DocumentChange::Kind::Modified:
+          structureChanged = modifyEntity ( document, change.handle, font ) || structureChanged;
+          break;
         case Cad::DocumentChange::Kind::Reset:
-          requiresRebuild = true;
+          needsFullRebuild = true;
           break;
       }
 
-      if ( requiresRebuild ) break;
+      if ( needsFullRebuild ) break;
     }
 
-    if ( requiresRebuild || overlayTooLarge () ) rebuildMain ( document, font );
+    if ( needsFullRebuild || ( structureChanged && shouldCompact () ) )
+    {
+      rebuildAll ( document, font );
+      return;
+    }
+
+    refreshDirtyTextPages ();
   }
 
   void RenderScene::draw ( const Core::Camera &camera, const Core::Font &font ) const
   {
-    rebuildVisibleDrawLists ( camera );
-    uploadVisibleTextCommands ();
+    const std::array<GLint, 1> firsts{ 0 };
 
-    m_arcPass.renderRanges ( camera, m_mainArcBatch.buffer (), m_visibleMainArcs.firsts (),
-                             m_visibleMainArcs.counts (), m_renderKeyScale );
-    m_ellipsePass.renderRanges ( camera, m_mainEllipseBatch.buffer (),
-                                 m_visibleMainEllipses.firsts (), m_visibleMainEllipses.counts (),
-                                 m_renderKeyScale );
-    m_linePass.renderRanges ( camera, m_mainLineBatch.buffer (), m_visibleMainLines.firsts (),
-                              m_visibleMainLines.counts (), m_renderKeyScale );
-    m_arcPass.renderRanges ( camera, m_overlayArcBatch.buffer (), m_visibleOverlayArcs.firsts (),
-                             m_visibleOverlayArcs.counts (), m_renderKeyScale );
-    m_ellipsePass.renderRanges ( camera, m_overlayEllipseBatch.buffer (),
-                                 m_visibleOverlayEllipses.firsts (),
-                                 m_visibleOverlayEllipses.counts (), m_renderKeyScale );
-    m_linePass.renderRanges ( camera, m_overlayLineBatch.buffer (), m_visibleOverlayLines.firsts (),
-                              m_visibleOverlayLines.counts (), m_renderKeyScale );
-
-    m_textPass.renderIndirect ( camera, font.texture (), font.distanceFieldRange (),
-                                m_mainTextBatch.buffer (), m_mainTextCommandBuffer,
-                                static_cast<GLsizei> ( m_visibleMainTextCommands.size () ),
-                                m_renderKeyScale );
-    m_textPass.renderIndirect ( camera, font.texture (), font.distanceFieldRange (),
-                                m_overlayTextBatch.buffer (), m_overlayTextCommandBuffer,
-                                static_cast<GLsizei> ( m_visibleOverlayTextCommands.size () ),
-                                m_renderKeyScale );
-  }
-
-  void RenderScene::rebuildMain ( const Cad::Document &document, Core::Font &font )
-  {
-    m_pages.clear ();
-    m_placements.clear ();
-    m_mainArcInstances.clear ();
-    m_mainEllipseInstances.clear ();
-    m_mainLineVertices.clear ();
-    m_mainTextInstances.clear ();
-    clearOverlay ();
-
-    const auto &order = document.drawOrder ();
-
-    Page currentPage;
-    bool hasCurrentPage = false;
-    std::size_t entitiesInPage = 0;
-    std::size_t arcInstancesInPage = 0;
-    std::size_t ellipseInstancesInPage = 0;
-    std::size_t lineVerticesInPage = 0;
-    std::size_t textInstancesInPage = 0;
-
-    auto beginPage = [&] ()
+    if ( const auto count = static_cast<GLsizei> ( m_arcBuffer.highWater () ); count > 0 )
     {
-      currentPage = Page{
-          .bbox = Math::BoxAABB (),
-          .arcInstanceFirst = static_cast<GLint> ( m_mainArcInstances.size () ),
-          .arcInstanceCount = 0,
-          .ellipseInstanceFirst = static_cast<GLint> ( m_mainEllipseInstances.size () ),
-          .ellipseInstanceCount = 0,
-          .lineFirst = static_cast<GLint> ( m_mainLineVertices.size () ),
-          .lineCount = 0,
-          .textInstanceFirst = static_cast<GLuint> ( m_mainTextInstances.size () ),
-          .textInstanceCount = 0,
-      };
-      entitiesInPage = 0;
-      arcInstancesInPage = 0;
-      ellipseInstancesInPage = 0;
-      lineVerticesInPage = 0;
-      textInstancesInPage = 0;
-      hasCurrentPage = true;
-    };
-
-    auto finishPage = [&] ()
-    {
-      if ( ! hasCurrentPage ) return;
-
-      currentPage.arcInstanceCount = static_cast<GLsizei> ( arcInstancesInPage );
-      currentPage.ellipseInstanceCount = static_cast<GLsizei> ( ellipseInstancesInPage );
-      currentPage.lineCount = static_cast<GLsizei> ( lineVerticesInPage );
-      currentPage.textInstanceCount = static_cast<GLuint> ( textInstancesInPage );
-      m_pages.push_back ( currentPage );
-      hasCurrentPage = false;
-    };
-
-    for ( const auto handle : order )
-    {
-      const auto *entity = document.find ( handle );
-      if ( ! entity ) continue;
-
-      GeometrySpan geometry = buildGeometry ( *entity, font );
-
-      const bool pageWouldOverflow =
-          hasCurrentPage &&
-          ( entitiesInPage >= kMaxEntitiesPerPage ||
-            arcInstancesInPage + geometry.arcInstances.size () > kMaxArcInstancesPerPage ||
-            ellipseInstancesInPage + geometry.ellipseInstances.size () >
-                kMaxEllipseInstancesPerPage ||
-            lineVerticesInPage + geometry.lineVertices.size () > kMaxLineVerticesPerPage ||
-            textInstancesInPage + geometry.textInstances.size () > kMaxTextInstancesPerPage );
-
-      if ( ! hasCurrentPage || pageWouldOverflow )
-      {
-        finishPage ();
-        beginPage ();
-      }
-
-      const GLint arcInstanceFirst = static_cast<GLint> ( m_mainArcInstances.size () );
-      const GLint ellipseInstanceFirst = static_cast<GLint> ( m_mainEllipseInstances.size () );
-      const GLint lineFirst = static_cast<GLint> ( m_mainLineVertices.size () );
-      const GLuint textInstanceFirst = static_cast<GLuint> ( m_mainTextInstances.size () );
-
-      m_mainArcInstances.insert ( m_mainArcInstances.end (), geometry.arcInstances.begin (),
-                                  geometry.arcInstances.end () );
-      m_mainEllipseInstances.insert ( m_mainEllipseInstances.end (),
-                                      geometry.ellipseInstances.begin (),
-                                      geometry.ellipseInstances.end () );
-      m_mainLineVertices.insert ( m_mainLineVertices.end (), geometry.lineVertices.begin (),
-                                  geometry.lineVertices.end () );
-      m_mainTextInstances.insert ( m_mainTextInstances.end (), geometry.textInstances.begin (),
-                                   geometry.textInstances.end () );
-
-      currentPage.bbox.merge ( geometry.bbox );
-      arcInstancesInPage += geometry.arcInstances.size ();
-      ellipseInstancesInPage += geometry.ellipseInstances.size ();
-      lineVerticesInPage += geometry.lineVertices.size ();
-      textInstancesInPage += geometry.textInstances.size ();
-      ++entitiesInPage;
-
-      m_placements[handle] = Placement{
-          .storage = StorageLocation::Main,
-          .bbox = geometry.bbox,
-          .arcInstanceFirst = arcInstanceFirst,
-          .arcInstanceCount = static_cast<GLsizei> ( geometry.arcInstances.size () ),
-          .ellipseInstanceFirst = ellipseInstanceFirst,
-          .ellipseInstanceCount = static_cast<GLsizei> ( geometry.ellipseInstances.size () ),
-          .lineFirst = lineFirst,
-          .lineCount = static_cast<GLsizei> ( geometry.lineVertices.size () ),
-          .textInstanceFirst = textInstanceFirst,
-          .textInstanceCount = static_cast<GLuint> ( geometry.textInstances.size () ),
-      };
+      const std::array<GLsizei, 1> counts{ count };
+      m_arcPass.renderRanges ( camera, m_arcBuffer.buffer (), firsts, counts, m_renderKeyScale );
     }
 
-    finishPage ();
+    if ( const auto count = static_cast<GLsizei> ( m_ellipseBuffer.highWater () ); count > 0 )
+    {
+      const std::array<GLsizei, 1> counts{ count };
+      m_ellipsePass.renderRanges ( camera, m_ellipseBuffer.buffer (), firsts, counts,
+                                   m_renderKeyScale );
+    }
 
-    m_mainArcBatch.upload ( std::span<const ArcPass::Instance> ( m_mainArcInstances ),
-                            GL::Buffer::Usage::StaticDraw );
-    m_mainEllipseBatch.upload ( std::span<const EllipsePass::Instance> ( m_mainEllipseInstances ),
-                                GL::Buffer::Usage::StaticDraw );
-    m_mainLineBatch.upload ( std::span<const LinePass::Vertex> ( m_mainLineVertices ),
-                             GL::Buffer::Usage::StaticDraw );
-    m_mainTextBatch.upload ( std::span<const TextPass::Instance> ( m_mainTextInstances ),
-                             GL::Buffer::Usage::StaticDraw );
-    m_bootstrapped = true;
+    if ( const auto count = static_cast<GLsizei> ( m_lineBuffer.highWater () ); count > 0 )
+    {
+      const std::array<GLsizei, 1> counts{ count };
+      m_linePass.renderRanges ( camera, m_lineBuffer.buffer (), firsts, counts, m_renderKeyScale );
+    }
+
+    uploadVisibleTextCommands ( camera );
+    m_textPass.renderIndirect ( camera, font.texture (), font.distanceFieldRange (),
+                                m_textBuffer.buffer (), m_textCommandBuffer,
+                                static_cast<GLsizei> ( m_visibleTextCommands.size () ),
+                                m_renderKeyScale );
   }
 
-  void RenderScene::appendAddedEntity ( const Cad::Document &document, const Core::Handle handle,
-                                        Core::Font &font )
+  void RenderScene::addEntity ( const Cad::Document &document, const Core::Handle handle,
+                                Core::Font &font )
   {
     const auto *entity = document.find ( handle );
-    if ( ! entity ) return;
+    if ( entity == nullptr ) return;
 
-    GeometrySpan geometry = buildGeometry ( *entity, font );
+    if ( m_placements.contains ( handle ) ) static_cast<void> ( removeEntity ( handle ) );
 
-    const GLint arcInstanceFirst = static_cast<GLint> ( m_overlayArcInstances.size () );
-    const GLint ellipseInstanceFirst = static_cast<GLint> ( m_overlayEllipseInstances.size () );
-    const GLint lineFirst = static_cast<GLint> ( m_overlayLineVertices.size () );
-    const GLuint textInstanceFirst = static_cast<GLuint> ( m_overlayTextInstances.size () );
+    const GeometrySpan geometry = buildGeometry ( *entity, font );
+    Placement placement;
+    placement.arcSlots =
+        m_arcBuffer.insert ( std::span<const ArcPass::Instance> ( geometry.arcInstances ) );
+    placement.ellipseSlots = m_ellipseBuffer.insert (
+        std::span<const EllipsePass::Instance> ( geometry.ellipseInstances ) );
+    placement.lineSlots =
+        m_lineBuffer.insert ( std::span<const LinePass::Vertex> ( geometry.lineVertices ) );
+    placement.textSlots =
+        m_textBuffer.insert ( std::span<const TextPass::Instance> ( geometry.textInstances ) );
+    placement.bbox = entity->bbox ();
 
-    m_overlayArcInstances.insert ( m_overlayArcInstances.end (), geometry.arcInstances.begin (),
-                                   geometry.arcInstances.end () );
-    m_overlayEllipseInstances.insert ( m_overlayEllipseInstances.end (),
-                                       geometry.ellipseInstances.begin (),
-                                       geometry.ellipseInstances.end () );
-    m_overlayLineVertices.insert ( m_overlayLineVertices.end (), geometry.lineVertices.begin (),
-                                   geometry.lineVertices.end () );
-    m_overlayTextInstances.insert ( m_overlayTextInstances.end (), geometry.textInstances.begin (),
-                                    geometry.textInstances.end () );
+    if ( ! placement.textSlots.empty () )
+      placement.textPage = appendTextPage ( placement.textSlots, placement.bbox, { handle } );
 
-    m_overlayArcBatch.upload ( std::span<const ArcPass::Instance> ( m_overlayArcInstances ),
-                               GL::Buffer::Usage::DynamicDraw );
-    m_overlayEllipseBatch.upload (
-        std::span<const EllipsePass::Instance> ( m_overlayEllipseInstances ),
-        GL::Buffer::Usage::DynamicDraw );
-    m_overlayLineBatch.upload ( std::span<const LinePass::Vertex> ( m_overlayLineVertices ),
-                                GL::Buffer::Usage::DynamicDraw );
-    m_overlayTextBatch.upload ( std::span<const TextPass::Instance> ( m_overlayTextInstances ),
-                                GL::Buffer::Usage::DynamicDraw );
-
-    const Placement placement{
-        .storage = StorageLocation::Overlay,
-        .bbox = geometry.bbox,
-        .arcInstanceFirst = arcInstanceFirst,
-        .arcInstanceCount = static_cast<GLsizei> ( geometry.arcInstances.size () ),
-        .ellipseInstanceFirst = ellipseInstanceFirst,
-        .ellipseInstanceCount = static_cast<GLsizei> ( geometry.ellipseInstances.size () ),
-        .lineFirst = lineFirst,
-        .lineCount = static_cast<GLsizei> ( geometry.lineVertices.size () ),
-        .textInstanceFirst = textInstanceFirst,
-        .textInstanceCount = static_cast<GLuint> ( geometry.textInstances.size () ),
-    };
-
-    m_overlayPlacements.push_back ( placement );
     m_placements[handle] = placement;
   }
 
-  void RenderScene::clearOverlay ()
+  bool RenderScene::removeEntity ( const Core::Handle handle )
   {
-    m_overlayArcInstances.clear ();
-    m_overlayEllipseInstances.clear ();
-    m_overlayLineVertices.clear ();
-    m_overlayTextInstances.clear ();
-    m_overlayPlacements.clear ();
-    m_overlayArcBatch.upload ( std::span<const ArcPass::Instance> ( m_overlayArcInstances ),
-                               GL::Buffer::Usage::DynamicDraw );
-    m_overlayEllipseBatch.upload (
-        std::span<const EllipsePass::Instance> ( m_overlayEllipseInstances ),
-        GL::Buffer::Usage::DynamicDraw );
-    m_overlayLineBatch.upload ( std::span<const LinePass::Vertex> ( m_overlayLineVertices ),
-                                GL::Buffer::Usage::DynamicDraw );
-    m_overlayTextBatch.upload ( std::span<const TextPass::Instance> ( m_overlayTextInstances ),
-                                GL::Buffer::Usage::DynamicDraw );
+    const auto it = m_placements.find ( handle );
+    if ( it == m_placements.end () ) return false;
+
+    const Placement placement = it->second;
+    if ( placement.textPage != kInvalidTextPage && placement.textPage < m_textPages.size () )
+    {
+      auto &page = m_textPages[placement.textPage];
+      page.handles.erase ( std::remove ( page.handles.begin (), page.handles.end (), handle ),
+                           page.handles.end () );
+      markTextPageDirty ( placement.textPage );
+    }
+
+    m_arcBuffer.erase ( placement.arcSlots );
+    m_ellipseBuffer.erase ( placement.ellipseSlots );
+    m_lineBuffer.erase ( placement.lineSlots );
+    m_textBuffer.erase ( placement.textSlots,
+                         ManagedBuffer<TextPass::Instance>::WriteMode::Immediate, false );
+    m_deadTextInstances += placement.textSlots.count;
+
+    m_placements.erase ( it );
+    return true;
   }
 
-  void RenderScene::rebuildVisibleDrawLists ( const Core::Camera &camera ) const
+  bool RenderScene::modifyEntity ( const Cad::Document &document, const Core::Handle handle,
+                                   Core::Font &font )
   {
-    m_visibleMainArcs.clear ();
-    m_visibleMainEllipses.clear ();
-    m_visibleMainLines.clear ();
-    m_visibleOverlayArcs.clear ();
-    m_visibleOverlayEllipses.clear ();
-    m_visibleOverlayLines.clear ();
-    m_visibleMainTextCommands.clear ();
-    m_visibleOverlayTextCommands.clear ();
+    const auto placementIt = m_placements.find ( handle );
+    if ( placementIt == m_placements.end () )
+    {
+      addEntity ( document, handle, font );
+      return true;
+    }
+
+    const auto *entity = document.find ( handle );
+    if ( entity == nullptr ) return removeEntity ( handle );
+
+    const Placement &oldPlacement = placementIt->second;
+    const GeometrySpan geometry = buildGeometry ( *entity, font );
+
+    const bool sameShape = geometry.arcInstances.size () == oldPlacement.arcSlots.count &&
+                           geometry.ellipseInstances.size () == oldPlacement.ellipseSlots.count &&
+                           geometry.lineVertices.size () == oldPlacement.lineSlots.count &&
+                           geometry.textInstances.size () == oldPlacement.textSlots.count;
+
+    if ( sameShape )
+    {
+      m_arcBuffer.update ( oldPlacement.arcSlots,
+                           std::span<const ArcPass::Instance> ( geometry.arcInstances ) );
+      m_ellipseBuffer.update ( oldPlacement.ellipseSlots, std::span<const EllipsePass::Instance> (
+                                                              geometry.ellipseInstances ) );
+      m_lineBuffer.update ( oldPlacement.lineSlots,
+                            std::span<const LinePass::Vertex> ( geometry.lineVertices ) );
+      m_textBuffer.update ( oldPlacement.textSlots,
+                            std::span<const TextPass::Instance> ( geometry.textInstances ) );
+      placementIt->second.bbox = entity->bbox ();
+      if ( placementIt->second.textPage != kInvalidTextPage )
+        markTextPageDirty ( placementIt->second.textPage );
+      return false;
+    }
+
+    static_cast<void> ( removeEntity ( handle ) );
+    addEntity ( document, handle, font );
+    return true;
+  }
+
+  void RenderScene::rebuildAll ( const Cad::Document &document, Core::Font &font )
+  {
+    m_arcBuffer.clear ();
+    m_ellipseBuffer.clear ();
+    m_lineBuffer.clear ();
+    m_textBuffer.clear ();
+    m_placements.clear ();
+    m_textPages.clear ();
+    m_deadTextInstances = 0;
+
+    SlotAllocator::Range currentTextPageSlots;
+    Math::BoxAABB currentTextPageBBox;
+    std::vector<Core::Handle> currentTextPageHandles;
+
+    auto flushCurrentTextPage = [&] ()
+    {
+      if ( currentTextPageSlots.empty () || currentTextPageHandles.empty () ) return;
+
+      const std::size_t pageIndex =
+          appendTextPage ( currentTextPageSlots, currentTextPageBBox, currentTextPageHandles );
+      for ( const Core::Handle textHandle : currentTextPageHandles )
+      {
+        auto placementIt = m_placements.find ( textHandle );
+        if ( placementIt != m_placements.end () ) placementIt->second.textPage = pageIndex;
+      }
+
+      currentTextPageSlots = {};
+      currentTextPageBBox = Math::BoxAABB ();
+      currentTextPageHandles.clear ();
+    };
+
+    for ( const Core::Handle handle : document.drawOrder () )
+    {
+      const auto *entity = document.find ( handle );
+      if ( entity == nullptr ) continue;
+
+      const GeometrySpan geometry = buildGeometry ( *entity, font );
+      Placement placement;
+      placement.arcSlots =
+          m_arcBuffer.insert ( std::span<const ArcPass::Instance> ( geometry.arcInstances ),
+                               ManagedBuffer<ArcPass::Instance>::WriteMode::Deferred );
+      placement.ellipseSlots = m_ellipseBuffer.insert (
+          std::span<const EllipsePass::Instance> ( geometry.ellipseInstances ),
+          ManagedBuffer<EllipsePass::Instance>::WriteMode::Deferred );
+      placement.lineSlots =
+          m_lineBuffer.insert ( std::span<const LinePass::Vertex> ( geometry.lineVertices ),
+                                ManagedBuffer<LinePass::Vertex>::WriteMode::Deferred );
+      placement.textSlots =
+          m_textBuffer.insert ( std::span<const TextPass::Instance> ( geometry.textInstances ),
+                                ManagedBuffer<TextPass::Instance>::WriteMode::Deferred );
+      placement.bbox = entity->bbox ();
+
+      m_placements[handle] = placement;
+
+      if ( ! placement.textSlots.empty () )
+      {
+        const bool pageWouldOverflow =
+            ! currentTextPageSlots.empty () &&
+            currentTextPageSlots.count + placement.textSlots.count > kMaxTextInstancesPerPage;
+        if ( pageWouldOverflow ) flushCurrentTextPage ();
+
+        if ( currentTextPageSlots.empty () )
+        {
+          currentTextPageSlots = placement.textSlots;
+          currentTextPageBBox = placement.bbox;
+        }
+        else
+        {
+          currentTextPageSlots.count += placement.textSlots.count;
+          currentTextPageBBox.merge ( placement.bbox );
+        }
+
+        currentTextPageHandles.push_back ( handle );
+      }
+    }
+
+    flushCurrentTextPage ();
+
+    m_arcBuffer.uploadAll ();
+    m_ellipseBuffer.uploadAll ();
+    m_lineBuffer.uploadAll ();
+    m_textBuffer.uploadAll ();
+
+    m_bootstrapped = true;
+    refreshDirtyTextPages ();
+  }
+
+  void RenderScene::uploadVisibleTextCommands ( const Core::Camera &camera ) const
+  {
+    m_visibleTextCommands.clear ();
 
     const Math::BoxAABB viewport = camera.viewportBox ();
-
-    for ( const auto &page : m_pages )
+    for ( const TextPage &page : m_textPages )
     {
+      if ( page.instanceRange.empty () || page.handles.empty () ) continue;
       if ( ! page.bbox.intersects ( viewport ) ) continue;
 
-      m_visibleMainArcs.append ( page.arcInstanceFirst, page.arcInstanceCount );
-      m_visibleMainEllipses.append ( page.ellipseInstanceFirst, page.ellipseInstanceCount );
-      m_visibleMainLines.append ( page.lineFirst, page.lineCount );
-      if ( page.textInstanceCount == 0 ) continue;
-
-      m_visibleMainTextCommands.push_back ( TextPass::DrawCommand{
-          .count = 6,
-          .instanceCount = page.textInstanceCount,
-          .first = 0,
-          .baseInstance = page.textInstanceFirst,
-      } );
+      TextPass::DrawCommand command;
+      command.count = 6;
+      command.instanceCount = page.instanceRange.count;
+      command.first = 0;
+      command.baseInstance = page.instanceRange.first;
+      m_visibleTextCommands.push_back ( command );
     }
 
-    for ( const auto &placement : m_overlayPlacements )
+    if ( ! m_visibleTextCommands.empty () )
+      m_textCommandBuffer.allocate (
+          std::span<const TextPass::DrawCommand> ( m_visibleTextCommands ),
+          GL::Buffer::Usage::DynamicDraw );
+  }
+
+  void RenderScene::refreshDirtyTextPages ()
+  {
+    for ( std::size_t pageIndex = 0; pageIndex < m_textPages.size (); ++pageIndex )
     {
-      if ( ! placement.bbox.intersects ( viewport ) ) continue;
+      TextPage &page = m_textPages[pageIndex];
+      if ( ! page.bboxDirty ) continue;
 
-      m_visibleOverlayArcs.append ( placement.arcInstanceFirst, placement.arcInstanceCount );
-      m_visibleOverlayEllipses.append ( placement.ellipseInstanceFirst,
-                                        placement.ellipseInstanceCount );
-      m_visibleOverlayLines.append ( placement.lineFirst, placement.lineCount );
-      if ( placement.textInstanceCount == 0 ) continue;
+      std::vector<Core::Handle> validHandles;
+      validHandles.reserve ( page.handles.size () );
 
-      m_visibleOverlayTextCommands.push_back ( TextPass::DrawCommand{
-          .count = 6,
-          .instanceCount = placement.textInstanceCount,
-          .first = 0,
-          .baseInstance = placement.textInstanceFirst,
-      } );
+      Math::BoxAABB bbox;
+      bool hasBounds = false;
+
+      for ( const Core::Handle handle : page.handles )
+      {
+        const auto placementIt = m_placements.find ( handle );
+        if ( placementIt == m_placements.end () ) continue;
+        if ( placementIt->second.textPage != pageIndex ) continue;
+        if ( placementIt->second.textSlots.empty () ) continue;
+
+        validHandles.push_back ( handle );
+        if ( ! hasBounds )
+        {
+          bbox = placementIt->second.bbox;
+          hasBounds = true;
+        }
+        else
+          bbox.merge ( placementIt->second.bbox );
+      }
+
+      page.handles = std::move ( validHandles );
+      if ( hasBounds ) page.bbox = bbox;
+      page.bboxDirty = false;
     }
   }
 
-  void RenderScene::uploadVisibleTextCommands () const
+  void RenderScene::markTextPageDirty ( const std::size_t pageIndex )
   {
-    m_mainTextCommandBuffer.allocate (
-        std::span<const TextPass::DrawCommand> ( m_visibleMainTextCommands ),
-        GL::Buffer::Usage::DynamicDraw );
-    m_overlayTextCommandBuffer.allocate (
-        std::span<const TextPass::DrawCommand> ( m_visibleOverlayTextCommands ),
-        GL::Buffer::Usage::DynamicDraw );
+    if ( pageIndex == kInvalidTextPage || pageIndex >= m_textPages.size () ) return;
+    m_textPages[pageIndex].bboxDirty = true;
+  }
+
+  std::size_t RenderScene::appendTextPage ( const SlotAllocator::Range instanceRange,
+                                            const Math::BoxAABB bbox,
+                                            std::vector<Core::Handle> handles )
+  {
+    if ( instanceRange.empty () || handles.empty () ) return kInvalidTextPage;
+
+    TextPage page;
+    page.instanceRange = instanceRange;
+    page.bbox = bbox;
+    page.handles = std::move ( handles );
+    m_textPages.push_back ( std::move ( page ) );
+    return m_textPages.size () - 1;
   }
 
   RenderScene::GeometrySpan RenderScene::buildGeometry ( const Entity::Entity &entity,
                                                          Core::Font &font )
   {
     GeometrySpan geometry;
-    geometry.bbox = entity.bbox ();
 
     const glm::vec4 color = colorForRenderKey ( entity.renderKey () );
-    const auto renderKey = entity.renderKey ();
+    const std::uint32_t renderKey = entity.renderKey ();
 
     switch ( entity.type () )
     {
@@ -374,6 +396,7 @@ namespace Qadra::Render
         geometry.lineVertices.insert ( geometry.lineVertices.end (),
                                        polylineGeometry.lineVertices.begin (),
                                        polylineGeometry.lineVertices.end () );
+        for ( auto &vertex : geometry.lineVertices ) vertex.flags = 1u;
         break;
       }
       case Entity::EntityType::Circle:
@@ -393,8 +416,8 @@ namespace Qadra::Render
       case Entity::EntityType::Line:
       {
         const auto &line = static_cast<const Entity::Line &> ( entity );
-        geometry.lineVertices.push_back ( { line.start (), color, renderKey } );
-        geometry.lineVertices.push_back ( { line.end (), color, renderKey } );
+        geometry.lineVertices.push_back ( { line.start (), color, renderKey, 1u } );
+        geometry.lineVertices.push_back ( { line.end (), color, renderKey, 1u } );
         break;
       }
       case Entity::EntityType::Text:
@@ -433,6 +456,7 @@ namespace Qadra::Render
                 .rotation = packedRotation,
                 .color = packedColor,
                 .renderKey = renderKey,
+                .flags = 1u,
             } );
           }
 
@@ -445,13 +469,17 @@ namespace Qadra::Render
     return geometry;
   }
 
-  bool RenderScene::overlayTooLarge () const
+  bool RenderScene::shouldCompact () const
   {
-    return m_overlayPlacements.size () > kMaxOverlayEntities ||
-           m_overlayArcInstances.size () > kMaxOverlayArcInstances ||
-           m_overlayEllipseInstances.size () > kMaxOverlayEllipseInstances ||
-           m_overlayLineVertices.size () > kMaxOverlayLineVertices ||
-           m_overlayTextInstances.size () > kMaxOverlayTextInstances;
+    constexpr float kFragmentationThreshold = 0.35f;
+
+    return m_arcBuffer.fragmentation () > kFragmentationThreshold ||
+           m_ellipseBuffer.fragmentation () > kFragmentationThreshold ||
+           m_lineBuffer.fragmentation () > kFragmentationThreshold ||
+           ( m_textBuffer.highWater () > 0 &&
+             static_cast<float> ( m_deadTextInstances ) /
+                     static_cast<float> ( m_textBuffer.highWater () ) >
+                 kFragmentationThreshold );
   }
 
   glm::vec4 RenderScene::colorForRenderKey ( const std::uint32_t renderKey )
