@@ -438,6 +438,9 @@ namespace Qadra::Render
         };
 
         glm::dvec2 cursor ( 0.0 );
+        glm::dvec2 textBoxMin ( 0.0 );
+        glm::dvec2 textBoxMax ( 0.0 );
+        bool hasTextBox = false;
         for ( const auto &shapedGlyph : text.layout ().glyphs )
         {
           const auto &glyph = font.glyph ( shapedGlyph.glyphId );
@@ -447,17 +450,55 @@ namespace Qadra::Render
             const glm::dvec2 qMin = offset + glm::dvec2 ( glyph.quadMin ) * text.height ();
             const glm::dvec2 qMax = offset + glm::dvec2 ( glyph.quadMax ) * text.height ();
 
-            geometry.textInstances.push_back ( TextPass::Instance{
-                .textOriginWorld = glm::vec2 ( text.position () ),
-                .quadMinLocal = glm::vec2 ( qMin ),
-                .quadMaxLocal = glm::vec2 ( qMax ),
-                .uvMin = { packUnorm16 ( glyph.uvMin.x ), packUnorm16 ( glyph.uvMin.y ) },
-                .uvMax = { packUnorm16 ( glyph.uvMax.x ), packUnorm16 ( glyph.uvMax.y ) },
-                .rotation = packedRotation,
-                .color = packedColor,
-                .renderKey = renderKey,
-                .flags = 1u,
-            } );
+            if ( ! hasTextBox )
+            {
+              textBoxMin = qMin;
+              textBoxMax = qMax;
+              hasTextBox = true;
+            }
+            else
+            {
+              textBoxMin = glm::min ( textBoxMin, qMin );
+              textBoxMax = glm::max ( textBoxMax, qMax );
+            }
+          }
+
+          cursor += shapedGlyph.advance;
+        }
+
+        if ( ! hasTextBox ) break;
+
+        cursor = glm::dvec2 ( 0.0 );
+        bool markerAnchorAssigned = false;
+        for ( const auto &shapedGlyph : text.layout ().glyphs )
+        {
+          const auto &glyph = font.glyph ( shapedGlyph.glyphId );
+          if ( ! glyph.empty )
+          {
+            const glm::dvec2 offset = ( cursor + shapedGlyph.offset ) * scale;
+            const glm::dvec2 qMin = offset + glm::dvec2 ( glyph.quadMin ) * text.height ();
+            const glm::dvec2 qMax = offset + glm::dvec2 ( glyph.quadMax ) * text.height ();
+
+            std::uint32_t flags = TextPass::kFlagAlive;
+            if ( ! markerAnchorAssigned )
+            {
+              flags |= TextPass::kFlagMarkerAnchor;
+              markerAnchorAssigned = true;
+            }
+
+            TextPass::Instance instance;
+            instance.textOriginWorld = glm::vec2 ( text.position () );
+            instance.quadMinLocal = glm::vec2 ( qMin );
+            instance.quadMaxLocal = glm::vec2 ( qMax );
+            instance.textBoxMinLocal = glm::vec2 ( textBoxMin );
+            instance.textBoxMaxLocal = glm::vec2 ( textBoxMax );
+            instance.uvMin = { packUnorm16 ( glyph.uvMin.x ), packUnorm16 ( glyph.uvMin.y ) };
+            instance.uvMax = { packUnorm16 ( glyph.uvMax.x ), packUnorm16 ( glyph.uvMax.y ) };
+            instance.rotation = packedRotation;
+            instance.color = packedColor;
+            instance.renderKey = renderKey;
+            instance.flags = flags;
+            geometry.textInstances.push_back ( instance );
           }
 
           cursor += shapedGlyph.advance;

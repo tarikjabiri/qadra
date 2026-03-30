@@ -2,6 +2,7 @@
 
 in vec2 vUV;
 in vec4 vColor;
+flat in uint vProxyMode;
 
 uniform sampler2D u_texture;
 uniform float u_distanceFieldRange;
@@ -19,11 +20,20 @@ float screenPixelRange(vec2 uv) {
 }
 
 void main() {
+    if (vProxyMode == 1u) {
+        FragColor = vec4(vColor.rgb, 1.0);
+        return;
+    }
+
+    if (vProxyMode == 2u) {
+        FragColor = vec4(vColor.rgb, 1.0);
+        return;
+    }
+
     vec3 msdf = texture(u_texture, vUV).rgb;
     float signedDistance = median(msdf.r, msdf.g, msdf.b) - 0.5;
     float pixelDistance = signedDistance * screenPixelRange(vUV);
 
-    // Keep the normal 1 px MSDF transition, but soften slightly when derivatives spike.
     float transitionWidth = 0.5 * clamp(fwidth(pixelDistance), 1.0, 1.5);
     float opacity = smoothstep(-transitionWidth, transitionWidth, pixelDistance);
 

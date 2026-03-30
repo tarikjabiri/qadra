@@ -16,11 +16,16 @@ namespace Qadra::Render
   class TextPass : public RenderPass
   {
   public:
+    static constexpr std::uint32_t kFlagAlive = 1u << 0u;
+    static constexpr std::uint32_t kFlagMarkerAnchor = 1u << 1u;
+
     struct Instance
     {
       glm::vec2 textOriginWorld;
       glm::vec2 quadMinLocal;
       glm::vec2 quadMaxLocal;
+      glm::vec2 textBoxMinLocal;
+      glm::vec2 textBoxMaxLocal;
       std::array<std::uint16_t, 2> uvMin;
       std::array<std::uint16_t, 2> uvMax;
       std::array<std::int16_t, 2> rotation;

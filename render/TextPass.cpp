@@ -18,6 +18,7 @@ namespace Qadra::Render
 
     m_program.uniform ( "u_distanceFieldRange", static_cast<float> ( distanceFieldRange ) );
     m_program.uniform ( "u_renderKeyScale", renderKeyScale );
+    m_program.uniform ( "u_pixelSizeWorld", static_cast<float> ( camera.pixelSizeInWorld () ) );
     atlas.bind ( 0 );
     m_program.uniform ( "u_texture", 0 );
 
@@ -46,30 +47,38 @@ namespace Qadra::Render
                         .relativeOffset = offsetof ( Instance, quadMaxLocal ) } );
     m_vao.attribute ( { .index = 3,
                         .size = 2,
+                        .type = GL_FLOAT,
+                        .relativeOffset = offsetof ( Instance, textBoxMinLocal ) } );
+    m_vao.attribute ( { .index = 4,
+                        .size = 2,
+                        .type = GL_FLOAT,
+                        .relativeOffset = offsetof ( Instance, textBoxMaxLocal ) } );
+    m_vao.attribute ( { .index = 5,
+                        .size = 2,
                         .type = GL_UNSIGNED_SHORT,
                         .relativeOffset = offsetof ( Instance, uvMin ),
                         .normalized = GL_TRUE } );
-    m_vao.attribute ( { .index = 4,
+    m_vao.attribute ( { .index = 6,
                         .size = 2,
                         .type = GL_UNSIGNED_SHORT,
                         .relativeOffset = offsetof ( Instance, uvMax ),
                         .normalized = GL_TRUE } );
-    m_vao.attribute ( { .index = 5,
+    m_vao.attribute ( { .index = 7,
                         .size = 2,
                         .type = GL_SHORT,
                         .relativeOffset = offsetof ( Instance, rotation ),
                         .normalized = GL_TRUE } );
-    m_vao.attribute ( { .index = 6,
+    m_vao.attribute ( { .index = 8,
                         .size = 4,
                         .type = GL_UNSIGNED_BYTE,
                         .relativeOffset = offsetof ( Instance, color ),
                         .normalized = GL_TRUE } );
-    m_vao.attribute ( { .index = 7,
+    m_vao.attribute ( { .index = 9,
                         .size = 1,
                         .type = GL_UNSIGNED_INT,
                         .relativeOffset = offsetof ( Instance, renderKey ),
                         .integer = true } );
-    m_vao.attribute ( { .index = 8,
+    m_vao.attribute ( { .index = 10,
                         .size = 1,
                         .type = GL_UNSIGNED_INT,
                         .relativeOffset = offsetof ( Instance, flags ),
