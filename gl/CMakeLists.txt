@@ -9,6 +9,7 @@ add_library(qadra_gl STATIC
   Texture.hpp
   VertexArray.cpp
   VertexArray.hpp
+  VertexLayout.hpp
 )
 
 target_include_directories(qadra_gl PUBLIC

@@ -2,9 +2,30 @@
 
 #include "math/Grid.hpp"
 
+#include <array>
 #include <cstddef>
 #include <stdexcept>
 #include <vector>
+
+namespace
+{
+  using Layout = Qadra::GL::VertexLayout;
+  using Segment = Qadra::Render::GridPass::Segment;
+
+  constexpr std::array<Qadra::GL::VertexAttribute, 5> kGridSegmentAttributes{
+      Layout::attribute ( 0, 2, GL_DOUBLE, offsetof ( Segment, from ) ),
+      Layout::attribute ( 1, 2, GL_DOUBLE, offsetof ( Segment, to ) ),
+      Layout::attribute ( 2, 4, GL_FLOAT, offsetof ( Segment, color ) ),
+      Layout::attribute ( 3, 1, GL_FLOAT, offsetof ( Segment, lineWidthPixels ) ),
+      Layout::attribute ( 4, 1, GL_FLOAT, offsetof ( Segment, antiAliasWidthPixels ) ),
+  };
+
+  constexpr std::array<Qadra::GL::VertexBinding, 1> kGridSegmentBindings{
+      Layout::binding ( 0, 1 ),
+  };
+
+  constexpr Layout kGridSegmentLayout{ kGridSegmentAttributes, kGridSegmentBindings };
+} // namespace
 
 namespace Qadra::Render
 {
@@ -25,28 +46,7 @@ namespace Qadra::Render
     glDrawArraysInstanced ( GL_TRIANGLES, 0, 6, m_vertexCount );
   }
 
-  void GridPass::setupAttributes ()
-  {
-    m_vao.attribute ( { .index = 0,
-                        .size = 2,
-                        .type = GL_DOUBLE,
-                        .relativeOffset = offsetof ( Segment, from ) } );
-    m_vao.attribute (
-        { .index = 1, .size = 2, .type = GL_DOUBLE, .relativeOffset = offsetof ( Segment, to ) } );
-    m_vao.attribute ( { .index = 2,
-                        .size = 4,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Segment, color ) } );
-    m_vao.attribute ( { .index = 3,
-                        .size = 1,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Segment, lineWidthPixels ) } );
-    m_vao.attribute ( { .index = 4,
-                        .size = 1,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Segment, antiAliasWidthPixels ) } );
-    m_vao.bindingDivisor ( 0, 1 );
-  }
+  void GridPass::setupAttributes () { m_vao.applyLayout ( kGridSegmentLayout ); }
 
   std::vector<GridPass::Segment> GridPass::buildSegments ( const Core::Camera &camera )
   {

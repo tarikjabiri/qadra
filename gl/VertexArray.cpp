@@ -27,7 +27,7 @@ namespace Qadra::GL
 
   void VertexArray::unbind () noexcept { glBindVertexArray ( 0 ); }
 
-  void VertexArray::attribute ( const Attribute &attr ) const noexcept
+  void VertexArray::attribute ( const VertexAttribute &attr ) const noexcept
   {
     glEnableVertexArrayAttrib ( m_handle, attr.index );
     if ( attr.type == GL_DOUBLE )
@@ -48,10 +48,27 @@ namespace Qadra::GL
     glVertexArrayAttribBinding ( m_handle, attr.index, attr.bindingIndex );
   }
 
+  void VertexArray::attributes ( const std::span<const VertexAttribute> attrs ) const noexcept
+  {
+    for ( const VertexAttribute &attr : attrs ) attribute ( attr );
+  }
+
   void VertexArray::bindingDivisor ( const GLuint bindingIndex,
                                      const GLuint divisor ) const noexcept
   {
     glVertexArrayBindingDivisor ( m_handle, bindingIndex, divisor );
+  }
+
+  void VertexArray::bindings ( const std::span<const VertexBinding> bindings ) const noexcept
+  {
+    for ( const VertexBinding &binding : bindings )
+      bindingDivisor ( binding.bindingIndex, binding.divisor );
+  }
+
+  void VertexArray::applyLayout ( const VertexLayout &layout ) const noexcept
+  {
+    attributes ( layout.attributes () );
+    bindings ( layout.bindings () );
   }
 
   void VertexArray::attachVertexBuffer ( const GLuint bindingIndex, const Buffer &buffer,

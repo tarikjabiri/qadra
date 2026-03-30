@@ -1,5 +1,29 @@
 #include "EllipsePass.hpp"
 
+namespace
+{
+  using Layout = Qadra::GL::VertexLayout;
+  using Instance = Qadra::Render::EllipsePass::Instance;
+
+  constexpr std::array<Qadra::GL::VertexAttribute, 9> kEllipseInstanceAttributes{
+      Layout::attribute ( 0, 2, GL_DOUBLE, offsetof ( Instance, centerWorld ) ),
+      Layout::attribute ( 1, 2, GL_FLOAT, offsetof ( Instance, boundsMinLocal ) ),
+      Layout::attribute ( 2, 2, GL_FLOAT, offsetof ( Instance, boundsMaxLocal ) ),
+      Layout::attribute ( 3, 2, GL_FLOAT, offsetof ( Instance, majorDirection ) ),
+      Layout::attribute ( 4, 1, GL_FLOAT, offsetof ( Instance, majorRadius ) ),
+      Layout::attribute ( 5, 1, GL_FLOAT, offsetof ( Instance, minorRadius ) ),
+      Layout::normalizedAttribute ( 6, 4, GL_UNSIGNED_BYTE, offsetof ( Instance, color ) ),
+      Layout::integerAttribute ( 7, 1, GL_UNSIGNED_INT, offsetof ( Instance, renderKey ) ),
+      Layout::integerAttribute ( 8, 1, GL_UNSIGNED_INT, offsetof ( Instance, flags ) ),
+  };
+
+  constexpr std::array<Qadra::GL::VertexBinding, 1> kEllipseInstanceBindings{
+      Layout::binding ( 0, 1 ),
+  };
+
+  constexpr Layout kEllipseInstanceLayout{ kEllipseInstanceAttributes, kEllipseInstanceBindings };
+} // namespace
+
 namespace Qadra::Render
 {
   EllipsePass::EllipsePass () : RenderPass ( "ellipse" ) { }
@@ -12,7 +36,7 @@ namespace Qadra::Render
     if ( firsts.empty () || firsts.size () != counts.size () ) return;
     if ( ! beginRender ( camera, 1 ) ) return;
 
-    m_vao.attachVertexBuffer ( 0, instanceBuffer, 0, sizeof ( Instance ) );
+    m_vao.attachVertexBuffer<Instance> ( 0, instanceBuffer );
     m_program.uniform ( "u_renderKeyScale", renderKeyScale );
     m_program.uniform ( "u_pixelSizeWorld", static_cast<float> ( camera.pixelSizeInWorld () ) );
 
@@ -37,47 +61,5 @@ namespace Qadra::Render
     if ( blendEnabled ) glEnable ( GL_BLEND );
   }
 
-  void EllipsePass::setupAttributes ()
-  {
-    m_vao.attribute ( { .index = 0,
-                        .size = 2,
-                        .type = GL_DOUBLE,
-                        .relativeOffset = offsetof ( Instance, centerWorld ) } );
-    m_vao.attribute ( { .index = 1,
-                        .size = 2,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, boundsMinLocal ) } );
-    m_vao.attribute ( { .index = 2,
-                        .size = 2,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, boundsMaxLocal ) } );
-    m_vao.attribute ( { .index = 3,
-                        .size = 2,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, majorDirection ) } );
-    m_vao.attribute ( { .index = 4,
-                        .size = 1,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, majorRadius ) } );
-    m_vao.attribute ( { .index = 5,
-                        .size = 1,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, minorRadius ) } );
-    m_vao.attribute ( { .index = 6,
-                        .size = 4,
-                        .type = GL_UNSIGNED_BYTE,
-                        .relativeOffset = offsetof ( Instance, color ),
-                        .normalized = GL_TRUE } );
-    m_vao.attribute ( { .index = 7,
-                        .size = 1,
-                        .type = GL_UNSIGNED_INT,
-                        .relativeOffset = offsetof ( Instance, renderKey ),
-                        .integer = true } );
-    m_vao.attribute ( { .index = 8,
-                        .size = 1,
-                        .type = GL_UNSIGNED_INT,
-                        .relativeOffset = offsetof ( Instance, flags ),
-                        .integer = true } );
-    m_vao.bindingDivisor ( 0, 1 );
-  }
+  void EllipsePass::setupAttributes () { m_vao.applyLayout ( kEllipseInstanceLayout ); }
 } // namespace Qadra::Render

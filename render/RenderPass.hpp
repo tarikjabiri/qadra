@@ -55,7 +55,7 @@ namespace Qadra::Render
 
     m_vbo.allocate ( vertices, usage );
 
-    m_vao.attachVertexBuffer ( 0, m_vbo, 0, sizeof ( V ) );
+    m_vao.attachVertexBuffer<V> ( 0, m_vbo );
 
     m_vertexCount = vertices.size ();
   }

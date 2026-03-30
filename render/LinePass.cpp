@@ -1,6 +1,22 @@
 #include "LinePass.hpp"
 
+#include <array>
 #include <stdexcept>
+
+namespace
+{
+  using Layout = Qadra::GL::VertexLayout;
+  using Vertex = Qadra::Render::LinePass::Vertex;
+
+  constexpr std::array<Qadra::GL::VertexAttribute, 4> kLineVertexAttributes{
+      Layout::attribute ( 0, 2, GL_DOUBLE, offsetof ( Vertex, position ) ),
+      Layout::attribute ( 1, 4, GL_FLOAT, offsetof ( Vertex, color ) ),
+      Layout::integerAttribute ( 2, 1, GL_UNSIGNED_INT, offsetof ( Vertex, renderKey ) ),
+      Layout::integerAttribute ( 3, 1, GL_UNSIGNED_INT, offsetof ( Vertex, flags ) ),
+  };
+
+  constexpr Layout kLineVertexLayout{ kLineVertexAttributes };
+} // namespace
 
 namespace Qadra::Render
 {
@@ -14,7 +30,7 @@ namespace Qadra::Render
     if ( firsts.empty () || firsts.size () != counts.size () ) return;
     if ( ! beginRender ( camera, 1 ) ) return;
 
-    m_vao.attachVertexBuffer ( 0, buffer, 0, sizeof ( Vertex ) );
+    m_vao.attachVertexBuffer<Vertex> ( 0, buffer );
     m_program.uniform ( "u_renderKeyScale", renderKeyScale );
 
     glLineWidth ( 1.0f );
@@ -22,23 +38,5 @@ namespace Qadra::Render
                         static_cast<GLsizei> ( firsts.size () ) );
   }
 
-  void LinePass::setupAttributes ()
-  {
-    m_vao.attribute ( { .index = 0,
-                        .size = 2,
-                        .type = GL_DOUBLE,
-                        .relativeOffset = offsetof ( Vertex, position ) } );
-    m_vao.attribute (
-        { .index = 1, .size = 4, .type = GL_FLOAT, .relativeOffset = offsetof ( Vertex, color ) } );
-    m_vao.attribute ( { .index = 2,
-                        .size = 1,
-                        .type = GL_UNSIGNED_INT,
-                        .relativeOffset = offsetof ( Vertex, renderKey ),
-                        .integer = true } );
-    m_vao.attribute ( { .index = 3,
-                        .size = 1,
-                        .type = GL_UNSIGNED_INT,
-                        .relativeOffset = offsetof ( Vertex, flags ),
-                        .integer = true } );
-  }
+  void LinePass::setupAttributes () { m_vao.applyLayout ( kLineVertexLayout ); }
 } // namespace Qadra::Render

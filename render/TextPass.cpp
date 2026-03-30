@@ -2,6 +2,32 @@
 
 #include <stdexcept>
 
+namespace
+{
+  using Layout = Qadra::GL::VertexLayout;
+  using Instance = Qadra::Render::TextPass::Instance;
+
+  constexpr std::array<Qadra::GL::VertexAttribute, 11> kTextInstanceAttributes{
+      Layout::attribute ( 0, 2, GL_FLOAT, offsetof ( Instance, textOriginWorld ) ),
+      Layout::attribute ( 1, 2, GL_FLOAT, offsetof ( Instance, quadMinLocal ) ),
+      Layout::attribute ( 2, 2, GL_FLOAT, offsetof ( Instance, quadMaxLocal ) ),
+      Layout::attribute ( 3, 2, GL_FLOAT, offsetof ( Instance, textBoxMinLocal ) ),
+      Layout::attribute ( 4, 2, GL_FLOAT, offsetof ( Instance, textBoxMaxLocal ) ),
+      Layout::normalizedAttribute ( 5, 2, GL_UNSIGNED_SHORT, offsetof ( Instance, uvMin ) ),
+      Layout::normalizedAttribute ( 6, 2, GL_UNSIGNED_SHORT, offsetof ( Instance, uvMax ) ),
+      Layout::normalizedAttribute ( 7, 2, GL_SHORT, offsetof ( Instance, rotation ) ),
+      Layout::normalizedAttribute ( 8, 4, GL_UNSIGNED_BYTE, offsetof ( Instance, color ) ),
+      Layout::integerAttribute ( 9, 1, GL_UNSIGNED_INT, offsetof ( Instance, renderKey ) ),
+      Layout::integerAttribute ( 10, 1, GL_UNSIGNED_INT, offsetof ( Instance, flags ) ),
+  };
+
+  constexpr std::array<Qadra::GL::VertexBinding, 1> kTextInstanceBindings{
+      Layout::binding ( 0, 1 ),
+  };
+
+  constexpr Layout kTextInstanceLayout{ kTextInstanceAttributes, kTextInstanceBindings };
+} // namespace
+
 namespace Qadra::Render
 {
   TextPass::TextPass () : RenderPass ( "text" ) { }
@@ -14,7 +40,7 @@ namespace Qadra::Render
     if ( drawCount <= 0 ) return;
     if ( ! beginRender ( camera, 1 ) ) return;
 
-    m_vao.attachVertexBuffer ( 0, instanceBuffer, 0, sizeof ( Instance ) );
+    m_vao.attachVertexBuffer<Instance> ( 0, instanceBuffer );
 
     m_program.uniform ( "u_distanceFieldRange", static_cast<float> ( distanceFieldRange ) );
     m_program.uniform ( "u_renderKeyScale", renderKeyScale );
@@ -31,58 +57,5 @@ namespace Qadra::Render
     glDepthMask ( depthMask );
   }
 
-  void TextPass::setupAttributes ()
-  {
-    m_vao.attribute ( { .index = 0,
-                        .size = 2,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, textOriginWorld ) } );
-    m_vao.attribute ( { .index = 1,
-                        .size = 2,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, quadMinLocal ) } );
-    m_vao.attribute ( { .index = 2,
-                        .size = 2,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, quadMaxLocal ) } );
-    m_vao.attribute ( { .index = 3,
-                        .size = 2,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, textBoxMinLocal ) } );
-    m_vao.attribute ( { .index = 4,
-                        .size = 2,
-                        .type = GL_FLOAT,
-                        .relativeOffset = offsetof ( Instance, textBoxMaxLocal ) } );
-    m_vao.attribute ( { .index = 5,
-                        .size = 2,
-                        .type = GL_UNSIGNED_SHORT,
-                        .relativeOffset = offsetof ( Instance, uvMin ),
-                        .normalized = GL_TRUE } );
-    m_vao.attribute ( { .index = 6,
-                        .size = 2,
-                        .type = GL_UNSIGNED_SHORT,
-                        .relativeOffset = offsetof ( Instance, uvMax ),
-                        .normalized = GL_TRUE } );
-    m_vao.attribute ( { .index = 7,
-                        .size = 2,
-                        .type = GL_SHORT,
-                        .relativeOffset = offsetof ( Instance, rotation ),
-                        .normalized = GL_TRUE } );
-    m_vao.attribute ( { .index = 8,
-                        .size = 4,
-                        .type = GL_UNSIGNED_BYTE,
-                        .relativeOffset = offsetof ( Instance, color ),
-                        .normalized = GL_TRUE } );
-    m_vao.attribute ( { .index = 9,
-                        .size = 1,
-                        .type = GL_UNSIGNED_INT,
-                        .relativeOffset = offsetof ( Instance, renderKey ),
-                        .integer = true } );
-    m_vao.attribute ( { .index = 10,
-                        .size = 1,
-                        .type = GL_UNSIGNED_INT,
-                        .relativeOffset = offsetof ( Instance, flags ),
-                        .integer = true } );
-    m_vao.bindingDivisor ( 0, 1 );
-  }
+  void TextPass::setupAttributes () { m_vao.applyLayout ( kTextInstanceLayout ); }
 } // namespace Qadra::Render
